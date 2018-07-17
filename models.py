@@ -5,8 +5,7 @@ from PIL import Image
 from keras.models import Model
 from keras.applications import VGG19
 from keras.callbacks import CSVLogger, ModelCheckpoint
-from keras.layers import Dense, Flatten, Input, Conv2D
-from keras.layers import UpSampling2D, Lambda, Concatenate, Subtract, Reshape, BatchNormalization, LeakyReLU
+from keras.layers import Flatten, Input, Conv2D, UpSampling2D, Concatenate, Subtract, Reshape, BatchNormalization, LeakyReLU
 from keras import backend as K
 
 K.set_image_data_format('channels_last')
@@ -124,9 +123,10 @@ class TransferModel:
         content_model = Model(self.inp, x)
         content_model.trainable = False
 
-        x = Subtract()(
-            [content_model(self.inp),
-             content_model(self.transfer_net(self.inp))])
+        x = Subtract()([
+            content_model(self.inp),
+            content_model(self.transfer_net(self.inp))
+        ])
         content_model = Model(self.inp, x)
         if self.verbose:
             content_model.summary()
