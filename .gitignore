@@ -1,6 +1,8 @@
 
 # Created by https://www.gitignore.io/api/pycharm,sublimetext,jupyternotebook
 
+data
+
 ### JupyterNotebook ###
 .ipynb_checkpoints
 */.ipynb_checkpoints/*
@@ -12,6 +14,9 @@
 ### PyCharm ###
 # Covers JetBrains IDEs: IntelliJ, RubyMine, PhpStorm, AppCode, PyCharm, CLion, Android Studio and WebStorm
 # Reference: https://intellij-support.jetbrains.com/hc/en-us/articles/206544839
+
+.idea
+.DS_Store
 
 # User-specific stuff
 .idea/**/workspace.xml
