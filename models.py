@@ -71,15 +71,18 @@ class TransferModel:
             temp = BatchNormalization(axis=3)(temp)
             x = Concatenate(axis=3)([x, temp])
 
-        x = UpSampling2D((4, 4))(x)
+        x = UpSampling2D((2, 2))(x)
+
+        x = Conv2D(128, (3, 3), padding='same')(x)
+        x = LeakyReLU(0.02)(x)
+        x = BatchNormalization(axis=3)(x)
+
+        x = UpSampling2D((2, 2))(x)
 
         x = Conv2D(64, (3, 3), padding='same')(x)
         x = LeakyReLU(0.02)(x)
         x = BatchNormalization(axis=3)(x)
-        x = Conv2D(32, (3, 3), padding='same')(x)
-        x = LeakyReLU(0.02)(x)
-        x = BatchNormalization(axis=3)(x)
-        x = Conv2D(16, (9, 9), padding='same')(x)
+        x = Conv2D(32, (9, 9), padding='same')(x)
         x = LeakyReLU(0.02)(x)
         x = BatchNormalization(axis=3)(x)
         x = Conv2D(3, (1, 1), padding='same', activation='sigmoid')(x)
