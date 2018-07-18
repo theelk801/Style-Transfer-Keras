@@ -12,6 +12,13 @@ K.set_image_data_format('channels_last')
 
 
 class TransferModel:
+    STYLE_LAYERS = ('block1_conv2', 'block2_conv2', 'block3_conv3', 'block4_conv3')
+    CONTENT_LAYER = 'block3_conv3'
+    sample_im_names = ['mountains', 'family', 'city', 'dogs']
+    style_dir = './data/styles/'
+    train_dir = './data/contents/resized/'
+    sample_dir = './data/examples/'
+
     def __init__(self, image_name, batch_size=8, image_size=256, verbose=True):
         self.image_name = image_name
         self.batch_size = batch_size
@@ -22,19 +29,11 @@ class TransferModel:
         self.vgg = VGG19(include_top=False)
         self.inp = Input(self.image_shape)
 
-        self.STYLE_LAYERS = ('block1_conv2', 'block2_conv2', 'block3_conv3',
-                             'block4_conv3')
-        self.CONTENT_LAYER = 'block3_conv3'
-
         self.transfer_net = self._create_transfer_net()
         self.style_model = self._create_style_model()
         self.content_model = self._create_content_model()
         self.transfer_train = self._create_transfer_train()
 
-        self.style_dir = './data/styles/'
-        self.train_dir = './data/contents/resized/'
-        self.sample_dir = './data/examples/'
-        self.sample_im_names = ['mountains', 'family', 'city', 'dogs']
         self.sample_ims = get_samples(self.sample_dir, self.sample_im_names)
 
         self.style_image = open_style_image(self.image_name, self.style_dir,
