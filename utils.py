@@ -1,7 +1,7 @@
 import numpy as np
 
 from keras import backend as K
-from keras.layers import Layer, BatchNormalization, LeakyReLU, Conv2D
+from keras.layers import Layer, LeakyReLU, Conv2D
 from keras.utils import Sequence
 from keras_contrib.layers import InstanceNormalization
 from PIL import Image
@@ -9,13 +9,13 @@ from PIL import Image
 K.set_image_data_format('channels_last')
 
 
-class Gram_Matrix(Layer):
+class GramMatrix(Layer):
     def __init__(self, weight=1, **kwargs):
         self.weight = weight**0.5
-        super(Gram_Matrix, self).__init__(**kwargs)
+        super(GramMatrix, self).__init__(**kwargs)
 
     def build(self, input_shape):
-        super(Gram_Matrix, self).build(input_shape)
+        super(GramMatrix, self).build(input_shape)
 
     def call(self, inputs, **kwargs):
         temp = K.batch_dot(
@@ -72,7 +72,7 @@ def open_style_image(image_name, style_dir, image_size):
 
 class DataGenerator(Sequence):
     def __init__(self,
-                 imdir,
+                 img_dir,
                  style_features,
                  content_model,
                  train_path,
@@ -80,40 +80,39 @@ class DataGenerator(Sequence):
                  w=256,
                  c=3,
                  batch_size=4):
-        'Initialization'
-        self.imdir = imdir
+        self.img_dir = img_dir
         self.train_path = train_path
         self.style_features = np.repeat(style_features, batch_size, axis=0)
         self.content_zeroes = np.zeros((batch_size,
                                         content_model.output_shape[1]))
         self.h = h
         self.w = w
-        self.c = 3
+        self.c = c
         self.batch_size = batch_size
+        self.indexes = np.arange(len(img_dir))
         self.on_epoch_end()
 
     def __len__(self):
-        return len(self.imdir) // self.batch_size
+        return len(self.img_dir) // self.batch_size
 
     def __getitem__(self, index):
         indexes = self.indexes[index * self.batch_size:(index + 1) *
                                self.batch_size]
-        im_temp = [self.imdir[k] for k in indexes]
-        X, y = self.__data_generation(im_temp)
+        im_temp = [self.img_dir[k] for k in indexes]
+        x, y = self.__data_generation(im_temp)
 
-        return X, y
+        return x, y
 
     def on_epoch_end(self):
-        self.indexes = np.arange(len(self.imdir))
         np.random.shuffle(self.indexes)
 
     def __data_generation(self, im_temp):
-        X = np.empty((self.batch_size, self.h, self.w, self.c))
+        x = np.empty((self.batch_size, self.h, self.w, self.c))
 
         for i, im in enumerate(im_temp):
             temp = np.array(Image.open(self.train_path + im)) / 255
             if len(temp.shape) == 2:
                 temp = np.repeat(np.expand_dims(temp, axis=2), 3, axis=2)
-            X[i, ] = temp
+            x[i, ] = temp
 
-        return X, [self.style_features, self.content_zeroes]
+        return x, [self.style_features, self.content_zeroes]

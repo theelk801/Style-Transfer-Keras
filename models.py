@@ -5,7 +5,7 @@ from PIL import Image
 from keras.models import Model
 from keras.applications import VGG19
 from keras.callbacks import CSVLogger, ModelCheckpoint
-from keras.layers import Flatten, Input, Conv2D, UpSampling2D, Concatenate, Subtract, Reshape, BatchNormalization, LeakyReLU, Lambda
+from keras.layers import Flatten, Input, Conv2D, UpSampling2D, Concatenate, Subtract, Reshape, Lambda
 from keras import backend as K
 
 K.set_image_data_format('channels_last')
@@ -42,7 +42,7 @@ class TransferModel:
         self.style_features = self.style_model.predict(self.style_image)
         self.imdir = os.listdir(self.train_dir)
         self.generator = DataGenerator(
-            imdir=self.imdir,
+            img_dir=self.imdir,
             style_features=self.style_features,
             content_model=self.content_model,
             train_path=self.train_dir,
@@ -69,7 +69,7 @@ class TransferModel:
         x = conv_act_norm(x, 32, (9, 9))
 
         x = Conv2D(3, (1, 1), padding='same', activation='tanh')(x)
-        x = Lambda(lambda x: (x + 1) / 2)(x)
+        x = Lambda(lambda t: (t + 1) / 2)(x)
 
         transfer_net = Model(inp, x)
         if self.verbose:
@@ -87,7 +87,7 @@ class TransferModel:
                         break
             x = Reshape(((self.image_shape[0] * self.image_shape[1]) // (4**j),
                          64 * (2**j)))(x)
-            x = Gram_Matrix(weight=5)(x)
+            x = GramMatrix(weight=5)(x)
             x = Flatten()(x)
             style_models += [x]
 
