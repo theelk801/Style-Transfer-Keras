@@ -17,7 +17,8 @@ class Gram_Matrix(Layer):
         super(Gram_Matrix, self).build(input_shape)
 
     def call(self, inputs, **kwargs):
-        temp = K.batch_dot(inputs, K.permute_dimensions(inputs, (0, 2, 1)), axes=[1, 2])
+        temp = K.batch_dot(
+            inputs, K.permute_dimensions(inputs, (0, 2, 1)), axes=[1, 2])
         b, hw, c = temp.get_shape()
         return self.weight * temp / int(hw * c)
 

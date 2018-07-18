@@ -12,7 +12,8 @@ K.set_image_data_format('channels_last')
 
 
 class TransferModel:
-    STYLE_LAYERS = ('block1_conv2', 'block2_conv2', 'block3_conv3', 'block4_conv3')
+    STYLE_LAYERS = ('block1_conv2', 'block2_conv2', 'block3_conv3',
+                    'block4_conv3')
     CONTENT_LAYER = 'block3_conv3'
     sample_im_names = ['mountains', 'family', 'city', 'dogs']
     style_dir = './data/styles/'
