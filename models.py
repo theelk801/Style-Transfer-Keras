@@ -52,44 +52,21 @@ class TransferModel:
         inp = Input((None, None, 3))
         x = inp
 
-        x = Conv2D(32, (9, 9), strides=(1, 1), padding='same')(x)
-        x = LeakyReLU(0.02)(x)
-        x = BatchNormalization(axis=3)(x)
-
-        x = Conv2D(64, (3, 3), strides=(2, 2), padding='same')(x)
-        x = LeakyReLU(0.02)(x)
-        x = BatchNormalization(axis=3)(x)
-
-        x = Conv2D(128, (3, 3), strides=(2, 2), padding='same')(x)
-        x = LeakyReLU(0.02)(x)
-        x = BatchNormalization(axis=3)(x)
+        x = conv_act_batch(x, 32, (9, 9))
+        x = conv_act_batch(x, 64, (3, 3), strides=(2, 2))
+        x = conv_act_batch(x, 128, (3, 3), strides=(2, 2))
 
         for _ in range(5):
-            temp = Conv2D(128, (3, 3), padding='same')(x)
-            temp = LeakyReLU(0.02)(temp)
-            temp = BatchNormalization(axis=3)(temp)
-
-            temp = Conv2D(128, (3, 3), padding='same')(temp)
-            temp = LeakyReLU(0.02)(temp)
-            temp = BatchNormalization(axis=3)(temp)
-
+            temp = conv_act_batch(x, 128, (3, 3))
+            temp = conv_act_batch(temp, 128, (3, 3))
             x = Concatenate(axis=3)([x, temp])
 
         x = UpSampling2D((2, 2))(x)
-
-        x = Conv2D(128, (3, 3), padding='same')(x)
-        x = LeakyReLU(0.02)(x)
-        x = BatchNormalization(axis=3)(x)
+        x = conv_act_batch(x, 128, (3, 3))
 
         x = UpSampling2D((2, 2))(x)
-
-        x = Conv2D(64, (3, 3), padding='same')(x)
-        x = LeakyReLU(0.02)(x)
-        x = BatchNormalization(axis=3)(x)
-
-        x = Conv2D(32, (9, 9), padding='same')(x)
-        x = LeakyReLU(0.02)(x)
-        x = BatchNormalization(axis=3)(x)
+        x = conv_act_batch(x, 64, (3, 3))
+        x = conv_act_batch(x, 32, (9, 9))
 
         x = Conv2D(3, (1, 1), padding='same', activation='tanh')(x)
         x = Lambda(lambda x: (x + 1) / 2)(x)
