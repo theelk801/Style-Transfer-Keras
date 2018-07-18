@@ -3,6 +3,7 @@ import numpy as np
 from keras import backend as K
 from keras.layers import Layer, BatchNormalization, LeakyReLU, Conv2D
 from keras.utils import Sequence
+from keras_contrib.layers import InstanceNormalization
 from PIL import Image
 
 K.set_image_data_format('channels_last')
@@ -26,15 +27,15 @@ class Gram_Matrix(Layer):
         return (input_shape[0], input_shape[-1], input_shape[-1])
 
 
-def conv_act_batch(inp,
-                   kernels,
-                   conv_window,
-                   strides=(1, 1),
-                   padding='same',
-                   alpha=0.02):
+def conv_act_norm(inp,
+                  kernels,
+                  conv_window,
+                  strides=(1, 1),
+                  padding='same',
+                  alpha=0.02):
     x = Conv2D(kernels, conv_window, strides=strides, padding=padding)(inp)
     x = LeakyReLU(alpha)(x)
-    x = BatchNormalization(axis=3)(x)
+    x = InstanceNormalization(axis=3)(x)
     return x
 
 

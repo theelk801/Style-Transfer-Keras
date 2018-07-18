@@ -52,21 +52,21 @@ class TransferModel:
         inp = Input((None, None, 3))
         x = inp
 
-        x = conv_act_batch(x, 32, (9, 9))
-        x = conv_act_batch(x, 64, (3, 3), strides=(2, 2))
-        x = conv_act_batch(x, 128, (3, 3), strides=(2, 2))
+        x = conv_act_norm(x, 32, (9, 9))
+        x = conv_act_norm(x, 64, (3, 3), strides=(2, 2))
+        x = conv_act_norm(x, 128, (3, 3), strides=(2, 2))
 
         for _ in range(5):
-            temp = conv_act_batch(x, 128, (3, 3))
-            temp = conv_act_batch(temp, 128, (3, 3))
+            temp = conv_act_norm(x, 128, (3, 3))
+            temp = conv_act_norm(temp, 128, (3, 3))
             x = Concatenate(axis=3)([x, temp])
 
         x = UpSampling2D((2, 2))(x)
-        x = conv_act_batch(x, 128, (3, 3))
+        x = conv_act_norm(x, 128, (3, 3))
 
         x = UpSampling2D((2, 2))(x)
-        x = conv_act_batch(x, 64, (3, 3))
-        x = conv_act_batch(x, 32, (9, 9))
+        x = conv_act_norm(x, 64, (3, 3))
+        x = conv_act_norm(x, 32, (9, 9))
 
         x = Conv2D(3, (1, 1), padding='same', activation='tanh')(x)
         x = Lambda(lambda x: (x + 1) / 2)(x)
