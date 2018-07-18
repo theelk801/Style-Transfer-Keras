@@ -1,5 +1,5 @@
-from utils import *
 import os
+from utils import *
 from PIL import Image
 
 from keras.models import Model
@@ -40,9 +40,9 @@ class TransferModel:
         self.style_image = open_style_image(self.image_name, self.style_dir,
                                             self.image_size)
         self.style_features = self.style_model.predict(self.style_image)
-        self.imdir = os.listdir(self.train_dir)
+        self.img_dir = os.listdir(self.train_dir)
         self.generator = DataGenerator(
-            img_dir=self.imdir,
+            img_dir=self.img_dir,
             style_features=self.style_features,
             content_model=self.content_model,
             train_path=self.train_dir,
@@ -131,14 +131,14 @@ class TransferModel:
 
     def train(self, cores=8, epochs=5):
         csv_logger = CSVLogger('./data/logs/log.csv')
-        checkp = ModelCheckpoint(
+        checkpoint = ModelCheckpoint(
             './data/models/model.h5', save_best_only=False, verbose=1)
 
         return self.transfer_train.fit_generator(
             self.generator,
             use_multiprocessing=True,
             workers=cores,
-            callbacks=[csv_logger, checkp],
+            callbacks=[csv_logger, checkpoint],
             epochs=epochs,
             verbose=self.verbose)
 
