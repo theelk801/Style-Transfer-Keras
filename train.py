@@ -1,7 +1,10 @@
 from models import *
 
 
-def main(batch_size=8, image_size=256, verbose=True):
+def main():
+    batch_size = 8
+    image_size = 256
+    verbose = True
     transfer = TransferModel(
         batch_size=batch_size, image_size=image_size, verbose=verbose)
     transfer.train()
