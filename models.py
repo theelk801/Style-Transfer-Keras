@@ -3,7 +3,6 @@ from PIL import Image
 
 from keras.models import Model
 from keras.applications import VGG19
-from keras.callbacks import CSVLogger, ModelCheckpoint
 from keras.layers import Flatten, Input, Conv2D, UpSampling2D, Concatenate, Subtract, Reshape, Lambda
 from keras import backend as K
 
@@ -35,7 +34,8 @@ class TransferModel:
 
         self.sample_ims = get_samples(self.sample_dir, self.sample_im_names)
 
-        self.style_image = open_style_image(self.style_dir, self.image_size, self.verbose)
+        self.style_image = open_style_image(self.style_dir, self.image_size,
+                                            self.verbose)
         self.style_features = self.style_model.predict(self.style_image)
         self.img_dir = os.listdir(self.train_dir)
         self.generator = DataGenerator(
@@ -131,15 +131,10 @@ class TransferModel:
         return transfer_train
 
     def train(self, cores=8, epochs=5):
-        csv_logger = CSVLogger('./data/logs/log.csv')
-        checkpoint = ModelCheckpoint(
-            './data/models/model.h5', save_best_only=False, verbose=1)
-
         return self.transfer_train.fit_generator(
             self.generator,
             use_multiprocessing=True,
             workers=cores,
-            callbacks=[csv_logger, checkpoint],
             epochs=epochs,
             verbose=self.verbose)
 
