@@ -35,7 +35,7 @@ class TransferModel:
 
         self.sample_ims = get_samples(self.sample_dir, self.sample_im_names)
 
-        self.style_image = open_style_image(self.style_dir, self.image_size)
+        self.style_image = open_style_image(self.style_dir, self.image_size, self.verbose)
         self.style_features = self.style_model.predict(self.style_image)
         self.img_dir = os.listdir(self.train_dir)
         self.generator = DataGenerator(
@@ -70,6 +70,7 @@ class TransferModel:
 
         transfer_net = Model(inp, x)
         if self.verbose:
+            print('Transfer model built')
             transfer_net.summary()
         return transfer_net
 
@@ -91,6 +92,7 @@ class TransferModel:
         style_model = Model(self.inp, Concatenate()(style_models))
         style_model.trainable = False
         if self.verbose:
+            print('Style model built')
             style_model.summary()
         return style_model
 
@@ -113,6 +115,7 @@ class TransferModel:
         ])
         content_model = Model(self.inp, x)
         if self.verbose:
+            print('Content model built')
             content_model.summary()
         return content_model
 
@@ -122,6 +125,7 @@ class TransferModel:
             self.content_model(self.inp)
         ])
         if self.verbose:
+            print('Full training model built')
             transfer_train.summary()
         transfer_train.compile('adam', loss='mean_squared_error')
         return transfer_train
