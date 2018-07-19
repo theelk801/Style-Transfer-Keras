@@ -1,4 +1,3 @@
-import os
 from utils import *
 from PIL import Image
 
@@ -16,12 +15,11 @@ class TransferModel:
                     'block4_conv3')
     CONTENT_LAYER = 'block3_conv3'
     sample_im_names = ['mountains', 'family', 'city', 'dogs']
-    style_dir = './data/styles/'
+    style_dir = './data/styles/current/'
     train_dir = './data/contents/resized/'
     sample_dir = './data/examples/'
 
-    def __init__(self, image_name, batch_size=8, image_size=256, verbose=True):
-        self.image_name = image_name
+    def __init__(self, batch_size=8, image_size=256, verbose=True):
         self.batch_size = batch_size
         self.image_size = image_size
         self.verbose = verbose
@@ -37,8 +35,7 @@ class TransferModel:
 
         self.sample_ims = get_samples(self.sample_dir, self.sample_im_names)
 
-        self.style_image = open_style_image(self.image_name, self.style_dir,
-                                            self.image_size)
+        self.style_image = open_style_image(self.style_dir, self.image_size)
         self.style_features = self.style_model.predict(self.style_image)
         self.img_dir = os.listdir(self.train_dir)
         self.generator = DataGenerator(
@@ -143,8 +140,7 @@ class TransferModel:
             verbose=self.verbose)
 
     def save_transfer_model(self):
-        self.transfer_net.save('./data/models/' + self.image_name +
-                               '_transfer_model.h5')
+        self.transfer_net.save('./data/models/transfer_model.h5')
 
     def save_samples(self):
         for key in self.sample_ims.keys():
