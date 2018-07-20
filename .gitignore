@@ -2,6 +2,7 @@
 # Created by https://www.gitignore.io/api/pycharm,sublimetext,jupyternotebook
 
 data
+__pycache__
 
 ### JupyterNotebook ###
 .ipynb_checkpoints
