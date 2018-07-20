@@ -14,15 +14,16 @@ class TransferModel:
                     'block4_conv3')
     CONTENT_LAYER = 'block3_conv3'
     sample_im_names = ['mountains', 'family', 'city', 'dogs']
-    style_dir = './data/styles/current/'
+    style_dir = './data/styles/'
     train_dir = './data/contents/resized/'
     sample_dir = './data/examples/'
 
-    def __init__(self, batch_size=8, image_size=256, verbose=True):
+    def __init__(self, style_name, batch_size=8, image_size=256, verbose=True):
         self.batch_size = batch_size
         self.image_size = image_size
         self.verbose = verbose
         self.image_shape = (image_size, image_size, 3)
+        self.style_name = style_name
 
         self.vgg = VGG19(include_top=False)
         self.inp = Input(self.image_shape)
@@ -34,8 +35,8 @@ class TransferModel:
 
         self.sample_ims = get_samples(self.sample_dir, self.sample_im_names)
 
-        self.style_image = open_style_image(self.style_dir, self.image_size,
-                                            self.verbose)
+        self.style_image = open_style_image(self.style_name, self.style_dir,
+                                            self.image_size, self.verbose)
         self.style_features = self.style_model.predict(self.style_image)
         self.img_dir = os.listdir(self.train_dir)
         self.generator = DataGenerator(
@@ -139,7 +140,8 @@ class TransferModel:
             verbose=self.verbose)
 
     def save_transfer_model(self):
-        self.transfer_net.save('./data/models/transfer_model.h5')
+        self.transfer_net.save(
+            f'./data/models/{self.style_name}_transfer_model.h5')
 
     def save_samples(self):
         for key in self.sample_ims.keys():

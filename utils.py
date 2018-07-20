@@ -64,8 +64,7 @@ def get_samples(sample_dir, sample_im_names):
     return sample_ims
 
 
-def open_style_image(style_dir, image_size, verbose=True):
-    style_name = [x for x in os.listdir(style_dir) if '.DS' not in x][0]
+def open_style_image(style_name, style_dir, image_size, verbose=True):
     style_image = Image.open(style_dir + style_name)
     style_image = np.array(style_image.resize((image_size, image_size)))
     style_image = style_image.reshape((1, image_size, image_size, 3)) / 255
