@@ -185,4 +185,4 @@ class TransferModel:
             im = self.transfer_net.predict(
                 np.expand_dims(self.sample_ims[key], axis=0))[0]
             im = Image.fromarray(np.uint8(255 * im))
-            im.save('./data/output/' + key + '.jpg')
+            im.save(f'./data/output/{self.style_name}_{key}.jpg')
