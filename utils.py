@@ -89,7 +89,7 @@ class DataGenerator(Sequence):
         self.content_zeroes = np.zeros((batch_size,
                                         content_model.output_shape[1]))
         self.denoising_zeroes = np.zeros((batch_size,
-                                          (((h + 1) * w) + (h * (w + 1))) * c))
+                                          (((h - 1) * w) + (h * (w - 1))) * c))
         self.h = h
         self.w = w
         self.c = c

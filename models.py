@@ -3,7 +3,7 @@ from PIL import Image
 
 from keras.models import Model
 from keras.applications import VGG19
-from keras.layers import Flatten, Input, Conv2D, UpSampling2D, Concatenate, Subtract, Reshape, Lambda, ZeroPadding2D
+from keras.layers import Flatten, Input, Conv2D, UpSampling2D, Concatenate, Subtract, Reshape, Lambda, ZeroPadding2D, Cropping2D
 from keras import backend as K
 
 K.set_image_data_format('channels_last')
@@ -142,10 +142,12 @@ class TransferModel:
             ZeroPadding2D(padding=((0, 0), (0, 1)))(self.inp),
             ZeroPadding2D(padding=((0, 0), (1, 0)))(self.inp)
         ])
+        x = Cropping2D(cropping=((0, 0), (1, 1)))(x)
         y = Subtract()([
             ZeroPadding2D(padding=((0, 1), (0, 0)))(self.inp),
             ZeroPadding2D(padding=((1, 0), (0, 0)))(self.inp)
         ])
+        y = Cropping2D(cropping=((1, 1), (0, 0)))(y)
         x = Flatten()(x)
         y = Flatten()(y)
         x = Concatenate()([x, y])
