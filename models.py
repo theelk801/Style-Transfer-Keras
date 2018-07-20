@@ -9,6 +9,17 @@ from keras import backend as K
 K.set_image_data_format('channels_last')
 
 
+def build_and_train(style_name, batch_size=8, image_size=256, verbose=True):
+    transfer = TransferModel(
+        style_name,
+        batch_size=batch_size,
+        image_size=image_size,
+        verbose=verbose)
+    transfer.train()
+    transfer.save_transfer_model()
+    transfer.save_samples()
+
+
 class TransferModel:
     STYLE_LAYERS = ('block1_conv2', 'block2_conv2', 'block3_conv3',
                     'block4_conv3')
