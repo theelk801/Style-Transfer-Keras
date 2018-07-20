@@ -88,6 +88,8 @@ class DataGenerator(Sequence):
         self.style_features = np.repeat(style_features, batch_size, axis=0)
         self.content_zeroes = np.zeros((batch_size,
                                         content_model.output_shape[1]))
+        self.denoising_zeroes = np.zeros((batch_size,
+                                          (((h + 1) * w) + (h * (w + 1))) * c))
         self.h = h
         self.w = w
         self.c = c
@@ -118,4 +120,6 @@ class DataGenerator(Sequence):
                 temp = np.repeat(np.expand_dims(temp, axis=2), 3, axis=2)
             x[i, ] = temp
 
-        return x, [self.style_features, self.content_zeroes]
+        return x, [
+            self.style_features, self.content_zeroes, self.denoising_zeroes
+        ]

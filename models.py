@@ -3,19 +3,24 @@ from PIL import Image
 
 from keras.models import Model
 from keras.applications import VGG19
-from keras.layers import Flatten, Input, Conv2D, UpSampling2D, Concatenate, Subtract, Reshape, Lambda
+from keras.layers import Flatten, Input, Conv2D, UpSampling2D, Concatenate, Subtract, Reshape, Lambda, ZeroPadding2D
 from keras import backend as K
 
 K.set_image_data_format('channels_last')
 
 
-def build_and_train(style_name, batch_size=8, image_size=256, verbose=True):
+def build_and_train(style_name,
+                    batch_size=8,
+                    image_size=256,
+                    verbose=True,
+                    cores=8,
+                    epochs=5):
     transfer = TransferModel(
         style_name,
         batch_size=batch_size,
         image_size=image_size,
         verbose=verbose)
-    transfer.train()
+    transfer.train(cores=cores, epochs=epochs)
     transfer.save_transfer_model()
     transfer.save_samples()
 
@@ -42,6 +47,7 @@ class TransferModel:
         self.transfer_net = self._create_transfer_net()
         self.style_model = self._create_style_model()
         self.content_model = self._create_content_model()
+        self.denoising_model = self._create_denoising_model()
         self.transfer_train = self._create_transfer_train()
 
         self.sample_ims = get_samples(self.sample_dir, self.sample_im_names)
@@ -131,10 +137,30 @@ class TransferModel:
             content_model.summary()
         return content_model
 
+    def _create_denoising_model(self):
+        x = Subtract()([
+            ZeroPadding2D(padding=((0, 0), (0, 1)))(self.inp),
+            ZeroPadding2D(padding=((0, 0), (1, 0)))(self.inp)
+        ])
+        y = Subtract()([
+            ZeroPadding2D(padding=((0, 1), (0, 0)))(self.inp),
+            ZeroPadding2D(padding=((1, 0), (0, 0)))(self.inp)
+        ])
+        x = Flatten()(x)
+        y = Flatten()(y)
+        x = Concatenate()([x, y])
+        x = Lambda(lambda t: 1e-3 * t)(x)
+        denoising_model = Model(self.inp, x)
+        if self.verbose:
+            print('Denoising model built')
+            denoising_model.summary()
+        return denoising_model
+
     def _create_transfer_train(self):
         transfer_train = Model(self.inp, [
             self.style_model(self.transfer_net(self.inp)),
-            self.content_model(self.inp)
+            self.content_model(self.inp),
+            self.denoising_model(self.transfer_net(self.inp))
         ])
         if self.verbose:
             print('Full training model built')
