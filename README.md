@@ -6,11 +6,11 @@ Mostly an attempt to recreate [this](https://github.com/ShafeenTejani/fast-style
 
 ## Requirements
 
-Numpy
-Pillows
-Keras
-Keras_contrib
-Tensorflow (GPU support highly recommended)
+ * Numpy
+ * Pillows
+ * Keras
+ * Keras_contrib
+ * Tensorflow (GPU support highly recommended)
 
 ## Deployment
 
