@@ -151,7 +151,7 @@ class TransferModel:
         x = Flatten()(x)
         y = Flatten()(y)
         x = Concatenate()([x, y])
-        x = Lambda(lambda t: 1e-3 * t)(x)
+        x = Lambda(lambda t: 1e-3 * 255 * t)(x)
         denoising_model = Model(self.inp, x)
         if self.verbose:
             print('Denoising model built')
