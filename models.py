@@ -167,7 +167,7 @@ class TransferModel:
         if self.verbose:
             print('Full training model built')
             transfer_train.summary()
-        transfer_train.compile('adam', loss='mean_squared_error')
+        transfer_train.compile('adam', loss=l2_loss)
         return transfer_train
 
     def train(self, cores=8, epochs=5):

@@ -27,6 +27,8 @@ class GramMatrix(Layer):
     def compute_output_shape(self, input_shape):
         return input_shape[0], input_shape[-1], input_shape[-1]
 
+def l2_loss(y_true, y_pred):
+    return K.sum(K.square(y_pred - y_true), axis=-1) / 2
 
 def conv_act_norm(inp,
                   kernels,
