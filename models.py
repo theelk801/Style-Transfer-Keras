@@ -1,5 +1,6 @@
 from utils import *
 from PIL import Image
+from itertools import count
 
 from keras.models import Model
 from keras.applications import VGG19
@@ -74,27 +75,49 @@ class TransferModel:
             batch_size=self.batch_size)
 
     def _create_transfer_net(self):
+        index_gen = count(1)
         inp = Input((None, None, 3))
         x = inp
 
-        x = conv_act_norm(x, 32, (9, 9))
-        x = conv_act_norm(x, 64, (3, 3), strides=(2, 2))
-        x = conv_act_norm(x, 128, (3, 3), strides=(2, 2))
+        x = conv_act_norm(
+            x, 32, (9, 9), name='transfer', name_index=next(index_gen))
+        x = conv_act_norm(
+            x,
+            64, (3, 3),
+            strides=(2, 2),
+            name='transfer',
+            name_index=next(index_gen))
+        x = conv_act_norm(
+            x,
+            128, (3, 3),
+            strides=(2, 2),
+            name='transfer',
+            name_index=next(index_gen))
 
         for _ in range(5):
-            temp = conv_act_norm(x, 128, (3, 3))
-            temp = conv_act_norm(temp, 128, (3, 3))
+            temp = conv_act_norm(
+                x, 128, (3, 3), name='transfer', name_index=next(index_gen))
+            temp = conv_act_norm(
+                temp, 128, (3, 3), name='transfer', name_index=next(index_gen))
             x = Concatenate(axis=3)([x, temp])
 
-        x = UpSampling2D((2, 2))(x)
-        x = conv_act_norm(x, 128, (3, 3))
+        x = UpSampling2D((2, 2), name='upsampling_1')(x)
+        x = conv_act_norm(
+            x, 128, (3, 3), name='transfer', name_index=next(index_gen))
 
-        x = UpSampling2D((2, 2))(x)
-        x = conv_act_norm(x, 64, (3, 3))
-        x = conv_act_norm(x, 32, (9, 9))
+        x = UpSampling2D((2, 2), name='upsampling_2')(x)
+        x = conv_act_norm(
+            x, 64, (3, 3), name='transfer', name_index=next(index_gen))
+        x = conv_act_norm(
+            x, 32, (9, 9), name='transfer', name_index=next(index_gen))
 
-        x = Conv2D(3, (1, 1), padding='same', activation='tanh')(x)
-        x = Lambda(lambda t: (t + 1) / 2)(x)
+        x = Conv2D(
+            3, (1, 1),
+            padding='same',
+            activation='tanh',
+            name='transfer',
+            name_index=next(index_gen))(x)
+        x = Lambda(lambda t: (t + 1) / 2, name='transfer')(x)
 
         transfer_net = Model(inp, x)
         if self.verbose:
@@ -104,6 +127,7 @@ class TransferModel:
 
     def _create_style_model(self):
         style_models = []
+        index_gen = count(1)
         for j, layer_name in enumerate(self.STYLE_LAYERS):
             x = self.inp
             for i, l in enumerate(self.vgg.layers):
@@ -111,10 +135,12 @@ class TransferModel:
                     x = l(x)
                     if l.name == layer_name:
                         break
-            x = Reshape(((self.image_shape[0] * self.image_shape[1]) // (4**j),
-                         64 * (2**j)))(x)
-            x = GramMatrix(weight=5)(x)
-            x = Flatten()(x)
+            x = Reshape(
+                ((self.image_shape[0] * self.image_shape[1]) // (4**j),
+                 64 * (2**j)),
+                name=f'style_reshape_{j}')(x)
+            x = GramMatrix(name=f'style_gram_{j}')(x)
+            x = Flatten(name=f'style_flatten_{j}')(x)
             style_models += [x]
 
         style_model = Model(self.inp, Concatenate(name='style')(style_models))
@@ -132,7 +158,7 @@ class TransferModel:
                 if l.name == self.CONTENT_LAYER:
                     break
 
-        x = Flatten()(x)
+        x = Flatten(name='content_flatten')(x)
 
         content_model = Model(self.inp, x)
         content_model.trainable = False
@@ -148,19 +174,21 @@ class TransferModel:
         return content_model
 
     def _create_denoising_model(self):
-        x = Subtract()([
-            ZeroPadding2D(padding=((0, 0), (0, 1)))(self.inp),
-            ZeroPadding2D(padding=((0, 0), (1, 0)))(self.inp)
+        x = Subtract(name='denoising_subtract_1')([
+            ZeroPadding2D(padding=((0, 0), (0, 1)),
+                          name='padding_1')(self.inp),
+            ZeroPadding2D(padding=((0, 0), (1, 0)), name='padding_2')(self.inp)
         ])
-        x = Cropping2D(cropping=((0, 0), (1, 1)))(x)
-        y = Subtract()([
-            ZeroPadding2D(padding=((0, 1), (0, 0)))(self.inp),
-            ZeroPadding2D(padding=((1, 0), (0, 0)))(self.inp)
+        x = Cropping2D(cropping=((0, 0), (1, 1)), name='cropping_1')(x)
+        y = Subtract(name='denoising_subtract_2')([
+            ZeroPadding2D(padding=((0, 1), (0, 0)),
+                          name='padding_3')(self.inp),
+            ZeroPadding2D(padding=((1, 0), (0, 0)), name='padding_4')(self.inp)
         ])
-        y = Cropping2D(cropping=((1, 1), (0, 0)))(y)
-        x = Flatten()(x)
-        y = Flatten()(y)
-        x = Concatenate()([x, y])
+        y = Cropping2D(cropping=((1, 1), (0, 0)), name='cropping_1')(y)
+        x = Flatten(name='denoising_flatten_1')(x)
+        y = Flatten(name='denoising_flatten_2')(y)
+        x = Concatenate('denoising_concatenate')([x, y])
         x = Lambda(lambda t: 255 * t, name='denoise')(x)
         denoising_model = Model(self.inp, x)
         if self.verbose:

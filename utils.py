@@ -36,10 +36,19 @@ def conv_act_norm(inp,
                   conv_window,
                   strides=(1, 1),
                   padding='same',
-                  alpha=0.02):
-    x = Conv2D(kernels, conv_window, strides=strides, padding=padding)(inp)
-    x = LeakyReLU(alpha)(x)
-    x = InstanceNormalization(axis=3)(x)
+                  alpha=0.02,
+                  name=None,
+                  name_index=None):
+    conv_name = act_name = norm_name = None
+    if name is not None and name_index is not None:
+        conv_name = name + f'_conv_{name_index}'
+        act_name = name + f'_act_{name_index}'
+        norm_name = name + f'_norm_{name_index}'
+    x = Conv2D(
+        kernels, conv_window, strides=strides, padding=padding,
+        name=conv_name)(inp)
+    x = LeakyReLU(alpha, name=act_name)(x)
+    x = InstanceNormalization(axis=3, name=norm_name)(x)
     return x
 
 
