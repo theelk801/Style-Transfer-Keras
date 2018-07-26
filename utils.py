@@ -11,8 +11,7 @@ K.set_image_data_format('channels_last')
 
 
 class GramMatrix(Layer):
-    def __init__(self, weight=1, **kwargs):
-        self.weight = weight**0.5
+    def __init__(self, **kwargs):
         super(GramMatrix, self).__init__(**kwargs)
 
     def build(self, input_shape):
@@ -22,7 +21,7 @@ class GramMatrix(Layer):
         temp = K.batch_dot(
             inputs, K.permute_dimensions(inputs, (0, 2, 1)), axes=[1, 2])
         b, hw, c = temp.get_shape()
-        return self.weight * temp / int(hw * c)
+        return temp / int(hw * c)
 
     def compute_output_shape(self, input_shape):
         return input_shape[0], input_shape[-1], input_shape[-1]

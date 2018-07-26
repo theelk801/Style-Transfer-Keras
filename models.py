@@ -34,9 +34,19 @@ class TransferModel:
     train_dir = './data/contents/resized/'
     sample_dir = './data/examples/'
 
-    def __init__(self, style_name, batch_size=8, image_size=256, verbose=True):
+    def __init__(self,
+                 style_name,
+                 batch_size=8,
+                 image_size=256,
+                 style_weight=5.0,
+                 content_weight=1.0,
+                 denoise_weight=1.0e-6,
+                 verbose=True):
         self.batch_size = batch_size
         self.image_size = image_size
+        self.style_weight = style_weight
+        self.content_weight = content_weight
+        self.denoise_weight = denoise_weight
         self.verbose = verbose
         self.image_shape = (image_size, image_size, 3)
         self.style_name = style_name
@@ -107,7 +117,7 @@ class TransferModel:
             x = Flatten()(x)
             style_models += [x]
 
-        style_model = Model(self.inp, Concatenate()(style_models))
+        style_model = Model(self.inp, Concatenate(name='style')(style_models))
         style_model.trainable = False
         if self.verbose:
             print('Style model built')
@@ -127,7 +137,7 @@ class TransferModel:
         content_model = Model(self.inp, x)
         content_model.trainable = False
 
-        x = Subtract()([
+        x = Subtract(name='content')([
             content_model(self.inp),
             content_model(self.transfer_net(self.inp))
         ])
@@ -151,7 +161,7 @@ class TransferModel:
         x = Flatten()(x)
         y = Flatten()(y)
         x = Concatenate()([x, y])
-        x = Lambda(lambda t: 1e-3 * 255 * t)(x)
+        x = Lambda(lambda t: 255 * t, name='denoise')(x)
         denoising_model = Model(self.inp, x)
         if self.verbose:
             print('Denoising model built')
@@ -167,7 +177,14 @@ class TransferModel:
         if self.verbose:
             print('Full training model built')
             transfer_train.summary()
-        transfer_train.compile('adam', loss=l2_loss)
+        transfer_train.compile(
+            'adam',
+            loss=l2_loss,
+            loss_weights={
+                'style': self.style_weight,
+                'content': self.content_weight,
+                'denoise': self.denoise_weight
+            })
         return transfer_train
 
     def train(self, cores=8, epochs=5):
