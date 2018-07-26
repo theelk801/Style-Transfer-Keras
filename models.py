@@ -1,10 +1,12 @@
+import os
 from utils import *
 from PIL import Image
 from itertools import count
 
 from keras.models import Model
 from keras.applications import VGG19
-from keras.layers import Flatten, Input, Conv2D, UpSampling2D, Concatenate, Subtract, Reshape, Lambda, ZeroPadding2D, Cropping2D
+from keras.layers import Layer, Flatten, Input, Conv2D, UpSampling2D, Concatenate, Subtract, Reshape, Lambda, ZeroPadding2D, Cropping2D, LeakyReLU
+from keras_contrib.layers import InstanceNormalization
 from keras import backend as K
 
 K.set_image_data_format('channels_last')
@@ -30,6 +32,48 @@ def build_and_train(style_name,
     transfer.train(cores=cores, epochs=epochs)
     transfer.save_transfer_model()
     transfer.save_samples()
+
+
+def conv_act_norm(inp,
+                  kernels,
+                  conv_window,
+                  strides=(1, 1),
+                  padding='same',
+                  alpha=0.02,
+                  name=None,
+                  name_index=None):
+    conv_name = act_name = norm_name = None
+    if name is not None and name_index is not None:
+        conv_name = name + f'_conv_{name_index}'
+        act_name = name + f'_act_{name_index}'
+        norm_name = name + f'_norm_{name_index}'
+    x = Conv2D(
+        kernels, conv_window, strides=strides, padding=padding,
+        name=conv_name)(inp)
+    x = LeakyReLU(alpha, name=act_name)(x)
+    x = InstanceNormalization(axis=3, name=norm_name)(x)
+    return x
+
+
+def l2_loss(y_true, y_pred):
+    return K.sum(K.square(y_pred - y_true), axis=-1) / 2
+
+
+class GramMatrix(Layer):
+    def __init__(self, **kwargs):
+        super(GramMatrix, self).__init__(**kwargs)
+
+    def build(self, input_shape):
+        super(GramMatrix, self).build(input_shape)
+
+    def call(self, inputs, **kwargs):
+        temp = K.batch_dot(
+            inputs, K.permute_dimensions(inputs, (0, 2, 1)), axes=[1, 2])
+        b, hw, c = temp.get_shape()
+        return temp / int(hw * c)
+
+    def compute_output_shape(self, input_shape):
+        return input_shape[0], input_shape[-1], input_shape[-1]
 
 
 class TransferModel:
@@ -132,7 +176,6 @@ class TransferModel:
 
     def _create_style_model(self):
         style_models = []
-        index_gen = count(1)
         for j, layer_name in enumerate(self.STYLE_LAYERS):
             x = self.inp
             for i, l in enumerate(self.vgg.layers):

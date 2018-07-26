@@ -2,17 +2,17 @@ from sys import argv
 from models import *
 
 
-def main(argv):
+def main(args):
     batch_size = 8
     image_size = 256
-    style_weight=5.0,
-    content_weight=1.0,
-    denoising_weight=1.0e-6,
+    style_weight = 5.0,
+    content_weight = 1.0,
+    denoising_weight = 1.0e-6,
     verbose = True
     cores = 8
     epochs = 5
-    if len(argv) > 1:
-        style_name = argv[1]
+    if len(args) > 1:
+        style_name = args[1]
     else:
         style_name = 'style.jpg'
     build_and_train(
