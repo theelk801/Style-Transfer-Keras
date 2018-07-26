@@ -41,13 +41,13 @@ class TransferModel:
                  image_size=256,
                  style_weight=5.0,
                  content_weight=1.0,
-                 denoise_weight=1.0e-6,
+                 denoising_weight=1.0e-6,
                  verbose=True):
         self.batch_size = batch_size
         self.image_size = image_size
         self.style_weight = style_weight
         self.content_weight = content_weight
-        self.denoise_weight = denoise_weight
+        self.denoising_weight = denoising_weight
         self.verbose = verbose
         self.image_shape = (image_size, image_size, 3)
         self.style_name = style_name
@@ -115,8 +115,7 @@ class TransferModel:
             3, (1, 1),
             padding='same',
             activation='tanh',
-            name='transfer',
-            name_index=next(index_gen))(x)
+            name=f'transfer_conv_{next(index_gen)}')(x)
         x = Lambda(lambda t: (t + 1) / 2, name='transfer')(x)
 
         transfer_net = Model(inp, x)
@@ -143,8 +142,10 @@ class TransferModel:
             x = Flatten(name=f'style_flatten_{j}')(x)
             style_models += [x]
 
-        style_model = Model(self.inp, Concatenate(name='style')(style_models))
+        style_model = Model(
+            self.inp, Concatenate(name='style_concatenate')(style_models))
         style_model.trainable = False
+        style_model.name = 'style_model'
         if self.verbose:
             print('Style model built')
             style_model.summary()
@@ -163,11 +164,12 @@ class TransferModel:
         content_model = Model(self.inp, x)
         content_model.trainable = False
 
-        x = Subtract(name='content')([
+        x = Subtract(name='content_subtract')([
             content_model(self.inp),
             content_model(self.transfer_net(self.inp))
         ])
         content_model = Model(self.inp, x)
+        content_model.name = 'content_model'
         if self.verbose:
             print('Content model built')
             content_model.summary()
@@ -185,12 +187,13 @@ class TransferModel:
                           name='padding_3')(self.inp),
             ZeroPadding2D(padding=((1, 0), (0, 0)), name='padding_4')(self.inp)
         ])
-        y = Cropping2D(cropping=((1, 1), (0, 0)), name='cropping_1')(y)
+        y = Cropping2D(cropping=((1, 1), (0, 0)), name='cropping_2')(y)
         x = Flatten(name='denoising_flatten_1')(x)
         y = Flatten(name='denoising_flatten_2')(y)
-        x = Concatenate('denoising_concatenate')([x, y])
-        x = Lambda(lambda t: 255 * t, name='denoise')(x)
+        x = Concatenate(name='denoising_concatenate')([x, y])
+        x = Lambda(lambda t: 255 * t, name='denoising_scale')(x)
         denoising_model = Model(self.inp, x)
+        denoising_model.name = 'denoising_model'
         if self.verbose:
             print('Denoising model built')
             denoising_model.summary()
@@ -209,9 +212,9 @@ class TransferModel:
             'adam',
             loss=l2_loss,
             loss_weights={
-                'style': self.style_weight,
-                'content': self.content_weight,
-                'denoise': self.denoise_weight
+                'style_model': self.style_weight,
+                'content_model': self.content_weight,
+                'denoising_model': self.denoising_weight
             })
         return transfer_train
 
