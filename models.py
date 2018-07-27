@@ -284,6 +284,8 @@ class TransferModel:
         self.transfer_net.save(
             f'./data/models/{self.style_name}_transfer_model_{self.epochs_trained}.h5'
         )
+        if self.verbose:
+            print(f'Model saved after {self.epochs_trained} epochs')
 
     def save_samples(self):
         for key in self.sample_ims.keys():
@@ -293,3 +295,5 @@ class TransferModel:
             im.save(
                 f'./data/output/{self.style_name[:-4]}_{key}_{self.epochs_trained}.jpg'
             )
+        if self.verbose:
+            print(f'Samples saved after {self.epochs_trained} epochs')
