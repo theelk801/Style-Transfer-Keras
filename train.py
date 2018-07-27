@@ -10,7 +10,8 @@ def main(args):
     denoising_weight = 1.0e-6,
     verbose = True
     cores = 8
-    epochs = 5
+    epochs = 2
+    repeat = 8
     if len(args) > 1:
         style_name = args[1]
     else:
@@ -24,7 +25,8 @@ def main(args):
         denoising_weight=denoising_weight,
         verbose=verbose,
         cores=cores,
-        epochs=epochs)
+        epochs=epochs,
+        repeat=repeat)
 
 
 if __name__ == '__main__':

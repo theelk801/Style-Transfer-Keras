@@ -20,7 +20,8 @@ def build_and_train(style_name,
                     denoising_weight=1.0e-6,
                     verbose=True,
                     cores=8,
-                    epochs=5):
+                    epochs=5,
+                    repeat=1):
     transfer = TransferModel(
         style_name,
         batch_size=batch_size,
@@ -29,9 +30,10 @@ def build_and_train(style_name,
         content_weight=content_weight,
         denoising_weight=denoising_weight,
         verbose=verbose)
-    transfer.train(cores=cores, epochs=epochs)
-    transfer.save_transfer_model()
-    transfer.save_samples()
+    for _ in range(repeat):
+        transfer.train(cores=cores, epochs=epochs)
+        transfer.save_transfer_model()
+        transfer.save_samples()
 
 
 def conv_act_norm(inp,
@@ -104,6 +106,7 @@ class TransferModel:
 
         self.vgg = VGG19(include_top=False)
         self.inp = Input(self.image_shape)
+        self.epochs_trained = 0
 
         self.transfer_net = self._create_transfer_net()
         self.style_model = self._create_style_model()
@@ -268,20 +271,25 @@ class TransferModel:
         return transfer_train
 
     def train(self, cores=8, epochs=5):
-        return self.transfer_train.fit_generator(
+        history = self.transfer_train.fit_generator(
             self.generator,
             use_multiprocessing=True,
             workers=cores,
             epochs=epochs,
             verbose=self.verbose)
+        self.epochs_trained += epochs
+        return history
 
     def save_transfer_model(self):
         self.transfer_net.save(
-            f'./data/models/{self.style_name}_transfer_model.h5')
+            f'./data/models/{self.style_name}_transfer_model_{self.epochs_trained}.h5'
+        )
 
     def save_samples(self):
         for key in self.sample_ims.keys():
             im = self.transfer_net.predict(
                 np.expand_dims(self.sample_ims[key], axis=0))[0]
             im = Image.fromarray(np.uint8(255 * im))
-            im.save(f'./data/output/{self.style_name[:-4]}_{key}.jpg')
+            im.save(
+                f'./data/output/{self.style_name[:-4]}_{key}_{self.epochs_trained}.jpg'
+            )
