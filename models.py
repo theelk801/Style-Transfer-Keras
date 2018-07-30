@@ -52,8 +52,8 @@ def conv_act_norm(inp,
     x = Conv2D(
         kernels, conv_window, strides=strides, padding=padding,
         name=conv_name)(inp)
-    x = LeakyReLU(alpha, name=act_name)(x)
     x = InstanceNormalization(axis=3, name=norm_name)(x)
+    x = LeakyReLU(alpha, name=act_name)(x)
     return x
 
 
