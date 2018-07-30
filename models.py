@@ -155,17 +155,21 @@ class TransferModel:
             x = Concatenate(axis=3)([x, temp])
 
         x = UpSampling2D((2, 2), name='upsampling_1')(x)
+
+        x = conv_act_norm(
+            x, 256, (3, 3), name='transfer', name_index=next(index_gen))
         x = conv_act_norm(
             x, 128, (3, 3), name='transfer', name_index=next(index_gen))
 
         x = UpSampling2D((2, 2), name='upsampling_2')(x)
+
         x = conv_act_norm(
             x, 64, (3, 3), name='transfer', name_index=next(index_gen))
         x = conv_act_norm(
-            x, 32, (9, 9), name='transfer', name_index=next(index_gen))
+            x, 32, (3, 3), name='transfer', name_index=next(index_gen))
 
         x = Conv2D(
-            3, (1, 1),
+            3, (9, 9),
             padding='same',
             activation='tanh',
             name=f'transfer_conv_{next(index_gen)}')(x)
