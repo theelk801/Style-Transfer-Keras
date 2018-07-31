@@ -198,8 +198,9 @@ class TransferModel:
                 name=f'style_reshape_{j}')(x)
             x = GramMatrix(name=f'style_gram_{j}')(x)
             x = Flatten(name=f'style_flatten_{j}')(x)
-            x = Lambda(lambda t: t / gram_size, name=f'style_weight_{j}')(x)
-            gram_sum += gram_size
+            x = Lambda(
+                lambda t: t / (gram_size**2), name=f'style_weight_{j}')(x)
+            gram_sum += (gram_size**2)
             style_models += [x]
 
         x = Concatenate(name='style_concatenate')(style_models)
