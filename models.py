@@ -183,8 +183,10 @@ class TransferModel:
 
     def _create_style_model(self):
         style_models = []
+        gram_sum = 0.0
         for j, layer_name in enumerate(self.STYLE_LAYERS):
             x = self.inp
+            gram_size = 64 * (2**j)
             for i, l in enumerate(self.vgg.layers):
                 if i != 0:
                     x = l(x)
@@ -192,14 +194,17 @@ class TransferModel:
                         break
             x = Reshape(
                 ((self.image_shape[0] * self.image_shape[1]) // (4**j),
-                 64 * (2**j)),
+                 gram_size),
                 name=f'style_reshape_{j}')(x)
             x = GramMatrix(name=f'style_gram_{j}')(x)
             x = Flatten(name=f'style_flatten_{j}')(x)
+            x = Lambda(lambda t: t / gram_size, name=f'style_weight_{j}')(x)
+            gram_sum += gram_size
             style_models += [x]
 
-        style_model = Model(
-            self.inp, Concatenate(name='style_concatenate')(style_models))
+        x = Concatenate(name='style_concatenate')(style_models)
+        x = Lambda(lambda t: gram_sum * t, name='style_flatten_last')(x)
+        style_model = Model(self.inp, x)
         style_model.trainable = False
         style_model.name = 'style_model'
         if self.verbose:
