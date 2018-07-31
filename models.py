@@ -252,7 +252,7 @@ class TransferModel:
         x = Flatten(name='denoising_flatten_1')(x)
         y = Flatten(name='denoising_flatten_2')(y)
         x = Concatenate(name='denoising_concatenate')([x, y])
-        x = Lambda(lambda t: 255 * t, name='denoising_scale')(x)
+        x = Lambda(lambda t: t, name='denoising_scale')(x)
         denoising_model = Model(self.inp, x)
         denoising_model.name = 'denoising_model'
         if self.verbose:

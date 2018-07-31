@@ -5,13 +5,13 @@ from models import *
 def main(args):
     batch_size = 8
     image_size = 256
-    style_weight = 5.0,
-    content_weight = 1.0,
-    denoising_weight = 1.0e-6,
+    style_weight = 100,
+    content_weight = 7.5,
+    denoising_weight = 0.05,
     verbose = True
     cores = 8
-    epochs = 2
-    repeat = 8
+    epochs = 1
+    repeat = 20
     if len(args) > 1:
         style_name = args[1]
     else:
