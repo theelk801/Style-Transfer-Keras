@@ -7,7 +7,7 @@ Mostly an attempt to recreate [this](https://github.com/ShafeenTejani/fast-style
 ## Requirements
 
  * Numpy
- * Pillows
+ * Scipy
  * Keras
  * Keras_contrib
  * Tensorflow (GPU support highly recommended)

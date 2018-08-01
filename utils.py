@@ -1,23 +1,20 @@
 import numpy as np
+import scipy
+import scipy.misc
 
 from keras.utils import Sequence
-from PIL import Image
 
 
-def open_im(path, square=False):
-    im = Image.open(path)
-    if square:
-        m = max(im.height, im.width)
-        im = im.resize((round(256 * im.width / m), round(256 * im.height / m)))
-        blank = Image.new('RGB', (256, 256), color=(255, 255, 255))
-        blank.paste(
-            im, box=(int((256 - im.width) / 2), int((256 - im.height) / 2)))
-        im = np.array(blank)
-    else:
-        im = np.array(im)
-    if len(im.shape) == 2:
-        return np.array(3 * [im]).transpose((1, 2, 0))
-    return im
+def open_im(image_path, img_size=None):
+    img = scipy.misc.imread(image_path)
+    if (len(img.shape) != 3) or (img.shape[2] != 3):
+        img = np.dstack((img, img, img))
+
+    if (img_size is not None):
+        img = scipy.misc.imresize(img, img_size)
+
+    img = img.astype("float32")
+    return img
 
 
 def get_samples(sample_dir, sample_im_names):
@@ -28,13 +25,8 @@ def get_samples(sample_dir, sample_im_names):
     return sample_ims
 
 
-def open_style_image(style_name, style_dir, image_size, verbose=True):
-    style_image = Image.open(style_dir + style_name)
-    style_image = np.array(style_image.resize((image_size, image_size)))
-    style_image = style_image.reshape((1, image_size, image_size, 3)) / 255
-    if verbose:
-        print(f'Opened style image: {style_name}')
-    return style_image
+def save_image(img, path):
+    scipy.misc.imsave(path, np.clip(img, 0, 255).astype(np.uint8))
 
 
 class DataGenerator(Sequence):
@@ -79,10 +71,8 @@ class DataGenerator(Sequence):
         x = np.empty((self.batch_size, self.h, self.w, self.c))
 
         for i, im in enumerate(im_temp):
-            temp = np.array(Image.open(self.train_path + im)) / 255
-            if len(temp.shape) == 2:
-                temp = np.repeat(np.expand_dims(temp, axis=2), 3, axis=2)
-            x[i, ] = temp
+            x[i, ] = open_im(self.train_path + im,
+                             (self.h, self.w, self.c)) / 255
 
         return x, [
             self.style_features, self.content_zeroes, self.denoising_zeroes

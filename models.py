@@ -1,6 +1,5 @@
 import os
 from utils import *
-from PIL import Image
 from itertools import count
 
 from keras.models import Model
@@ -116,8 +115,8 @@ class TransferModel:
 
         self.sample_ims = get_samples(self.sample_dir, self.sample_im_names)
 
-        self.style_image = open_style_image(self.style_name, self.style_dir,
-                                            self.image_size, self.verbose)
+        self.style_image = open_im(self.style_dir + self.style_name,
+                                   self.image_size) / 255
         self.style_features = self.style_model.predict(self.style_image)
         self.img_dir = os.listdir(self.train_dir)
         self.generator = DataGenerator(
@@ -308,9 +307,7 @@ class TransferModel:
         for key in self.sample_ims.keys():
             im = self.transfer_net.predict(
                 np.expand_dims(self.sample_ims[key], axis=0))[0]
-            im = Image.fromarray(np.uint8(255 * im))
-            im.save(
-                f'./data/output/{self.style_name[:-4]}_{key}_{self.epochs_trained}.jpg'
-            )
+            save_name = f'./data/output/{self.style_name[:-4]}_{key}_{self.epochs_trained}.jpg'
+            save_image(255 * im, save_name)
         if self.verbose:
             print(f'Samples saved after {self.epochs_trained} epochs')
