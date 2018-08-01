@@ -71,8 +71,7 @@ class DataGenerator(Sequence):
         x = np.empty((self.batch_size, self.h, self.w, self.c))
 
         for i, im in enumerate(im_temp):
-            x[i, ] = open_im(self.train_path + im,
-                             (self.h, self.w, self.c)) / 255
+            x[i, ] = open_im(self.train_path + im, (self.h, self.w)) / 255
 
         return x, [
             self.style_features, self.content_zeroes, self.denoising_zeroes
