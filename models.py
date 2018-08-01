@@ -79,9 +79,9 @@ class GramMatrix(Layer):
 
 
 class TransferModel:
-    STYLE_LAYERS = ('block1_conv2', 'block2_conv2', 'block3_conv3',
-                    'block4_conv3')
-    CONTENT_LAYER = 'block3_conv3'
+    STYLE_LAYERS = ('block1_conv1', 'block2_conv1', 'block3_conv1',
+                    'block4_conv1', 'block5_conv1')
+    CONTENT_LAYER = 'block4_conv2'
     sample_im_names = ['mountains', 'family', 'city', 'dogs']
     style_dir = './data/styles/'
     train_dir = './data/contents/resized/'
@@ -184,22 +184,29 @@ class TransferModel:
     def _create_style_model(self):
         style_models = []
         gram_sum = 0.0
+
         for j, layer_name in enumerate(self.STYLE_LAYERS):
             x = self.inp
+
+            pixel_count = (self.image_shape[0] * self.image_shape[1]) // (4**j)
             gram_size = 64 * (2**j)
+
+            if j == 4:
+                pixel_count = pixel_count
+                gram_size = gram_size // 2
+
             for i, l in enumerate(self.vgg.layers):
                 if i != 0:
                     x = l(x)
                     if l.name == layer_name:
                         break
-            x = Reshape(
-                ((self.image_shape[0] * self.image_shape[1]) // (4**j),
-                 gram_size),
-                name=f'style_reshape_{j}')(x)
+
+            x = Reshape((pixel_count, gram_size), name=f'style_reshape_{j}')(x)
             x = GramMatrix(name=f'style_gram_{j}')(x)
             x = Flatten(name=f'style_flatten_{j}')(x)
             x = Lambda(
                 lambda t: t / (gram_size**2), name=f'style_weight_{j}')(x)
+
             gram_sum += (gram_size**2)
             style_models += [x]
 
