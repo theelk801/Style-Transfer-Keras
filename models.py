@@ -4,7 +4,7 @@ from itertools import count
 
 from keras.models import Model
 from keras.applications import VGG19
-from keras.layers import Layer, Flatten, Input, Conv2D, UpSampling2D, Concatenate, Subtract, Reshape, Lambda, ZeroPadding2D, Cropping2D, LeakyReLU
+from keras.layers import Layer, Flatten, Input, Conv2D, UpSampling2D, Activation, Concatenate, Add, Subtract, Reshape, Lambda, ZeroPadding2D, Cropping2D, LeakyReLU
 from keras_contrib.layers import InstanceNormalization
 from keras import backend as K
 
@@ -173,6 +173,11 @@ class TransferModel:
             padding='same',
             activation='tanh',
             name=f'transfer_conv_{next(index_gen)}')(x)
+
+        x = Add(name='transfer_add')([inp, x])
+
+        x = Activation('tanh', name='transfer_final_tanh')(x)
+
         x = Lambda(lambda t: (t + 1) / 2, name='transfer')(x)
 
         transfer_net = Model(inp, x)
