@@ -10,48 +10,65 @@ def main():
     verbose = True
     cores = 8
     epochs = 1
-    repeat = 3
+    repeat = 2
     style_names = [
         'deer.jpg', 'soldier_chess.jpg', 'tate.jpg', 'starry_night.jpg'
     ]
     for style_name in style_names:
-        style_layers = ('block1_conv1', 'block2_conv1', 'block3_conv1',
-                        'block4_conv1', 'block5_conv1')
-        content_layer = 'block4_conv2'
+        for use_leaky in [False, True]:
+            style_layers = ('block1_conv1', 'block2_conv1', 'block3_conv1',
+                            'block4_conv1', 'block5_conv1')
+            content_layer = 'block4_conv2'
 
-        build_and_train(
-            style_name=style_name,
-            style_layers=style_layers,
-            content_layer=content_layer,
-            batch_size=batch_size,
-            image_size=image_size,
-            style_weight=style_weight,
-            content_weight=content_weight,
-            denoising_weight=denoising_weight,
-            verbose=verbose,
-            cores=cores,
-            epochs=epochs,
-            repeat=repeat,
-            extra_name='config1')
+            extra_name = 'config1'
 
-        style_layers = ('block1_conv2', 'block2_conv2', 'block3_conv3',
-                        'block4_conv3')
-        content_layer = 'block3_conv3'
+            if use_leaky:
+                extra_name += '_leaky'
+            else:
+                extra_name += '_not_leaky'
 
-        build_and_train(
-            style_name=style_name,
-            style_layers=style_layers,
-            content_layer=content_layer,
-            batch_size=batch_size,
-            image_size=image_size,
-            style_weight=style_weight,
-            content_weight=content_weight,
-            denoising_weight=denoising_weight,
-            verbose=verbose,
-            cores=cores,
-            epochs=epochs,
-            repeat=repeat,
-            extra_name='config2')
+            build_and_train(
+                style_name=style_name,
+                style_layers=style_layers,
+                content_layer=content_layer,
+                batch_size=batch_size,
+                image_size=image_size,
+                style_weight=style_weight,
+                content_weight=content_weight,
+                denoising_weight=denoising_weight,
+                use_leaky=use_leaky,
+                verbose=verbose,
+                cores=cores,
+                epochs=epochs,
+                repeat=repeat,
+                extra_name=extra_name)
+
+            style_layers = ('block1_conv2', 'block2_conv2', 'block3_conv3',
+                            'block4_conv3')
+            content_layer = 'block3_conv3'
+
+            extra_name = 'config2'
+
+            if use_leaky:
+                extra_name += '_leaky'
+            else:
+                extra_name += '_not_leaky'
+
+            build_and_train(
+                style_name=style_name,
+                style_layers=style_layers,
+                content_layer=content_layer,
+                batch_size=batch_size,
+                image_size=image_size,
+                style_weight=style_weight,
+                content_weight=content_weight,
+                denoising_weight=denoising_weight,
+                use_leaky=use_leaky,
+                verbose=verbose,
+                cores=cores,
+                epochs=epochs,
+                repeat=repeat,
+                extra_name=extra_name)
 
 
 if __name__ == '__main__':

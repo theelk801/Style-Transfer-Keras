@@ -19,6 +19,7 @@ def build_and_train(style_name,
                     style_weight=5.0,
                     content_weight=1.0,
                     denoising_weight=1.0e-6,
+                    use_leaky=True,
                     verbose=True,
                     cores=8,
                     epochs=5,
@@ -33,6 +34,7 @@ def build_and_train(style_name,
         style_weight=style_weight,
         content_weight=content_weight,
         denoising_weight=denoising_weight,
+        use_leaky=use_leaky,
         verbose=verbose)
     for _ in range(repeat):
         transfer.train(cores=cores, epochs=epochs)
@@ -46,6 +48,7 @@ def conv_act_norm(inp,
                   strides=(1, 1),
                   padding='same',
                   alpha=0.02,
+                  use_leaky=True,
                   name=None,
                   name_index=None):
     conv_name = act_name = norm_name = None
@@ -57,7 +60,10 @@ def conv_act_norm(inp,
         kernels, conv_window, strides=strides, padding=padding,
         name=conv_name)(inp)
     x = InstanceNormalization(axis=3, name=norm_name)(x)
-    x = LeakyReLU(alpha, name=act_name)(x)
+    if use_leaky:
+        x = LeakyReLU(alpha, name=act_name)(x)
+    else:
+        x = Activation('relu', name=act_name)(x)
     return x
 
 
@@ -97,12 +103,14 @@ class TransferModel:
                  style_weight=5.0,
                  content_weight=1.0,
                  denoising_weight=1.0e-6,
+                 use_leaky=True,
                  verbose=True):
         self.batch_size = batch_size
         self.image_size = image_size
         self.style_weight = style_weight
         self.content_weight = content_weight
         self.denoising_weight = denoising_weight
+        self.use_leaky = use_leaky
         self.verbose = verbose
         self.image_shape = (image_size, image_size, 3)
         self.style_name = style_name
@@ -139,40 +147,70 @@ class TransferModel:
         x = inp
 
         x = conv_act_norm(
-            x, 32, (9, 9), name='transfer', name_index=next(index_gen))
+            x,
+            32, (9, 9),
+            name='transfer',
+            use_leaky=self.use_leaky,
+            name_index=next(index_gen))
         x = conv_act_norm(
             x,
             64, (3, 3),
             strides=(2, 2),
             name='transfer',
+            use_leaky=self.use_leaky,
             name_index=next(index_gen))
         x = conv_act_norm(
             x,
             128, (3, 3),
             strides=(2, 2),
             name='transfer',
+            use_leaky=self.use_leaky,
             name_index=next(index_gen))
 
         for _ in range(5):
             temp = conv_act_norm(
-                x, 128, (3, 3), name='transfer', name_index=next(index_gen))
+                x,
+                128, (3, 3),
+                name='transfer',
+                use_leaky=self.use_leaky,
+                name_index=next(index_gen))
             temp = conv_act_norm(
-                temp, 128, (3, 3), name='transfer', name_index=next(index_gen))
+                temp,
+                128, (3, 3),
+                name='transfer',
+                use_leaky=self.use_leaky,
+                name_index=next(index_gen))
             x = Concatenate(axis=3)([x, temp])
 
         x = UpSampling2D((2, 2), name='upsampling_1')(x)
 
         x = conv_act_norm(
-            x, 256, (3, 3), name='transfer', name_index=next(index_gen))
+            x,
+            256, (3, 3),
+            name='transfer',
+            use_leaky=self.use_leaky,
+            name_index=next(index_gen))
         x = conv_act_norm(
-            x, 128, (3, 3), name='transfer', name_index=next(index_gen))
+            x,
+            128, (3, 3),
+            name='transfer',
+            use_leaky=self.use_leaky,
+            name_index=next(index_gen))
 
         x = UpSampling2D((2, 2), name='upsampling_2')(x)
 
         x = conv_act_norm(
-            x, 64, (3, 3), name='transfer', name_index=next(index_gen))
+            x,
+            64, (3, 3),
+            name='transfer',
+            use_leaky=self.use_leaky,
+            name_index=next(index_gen))
         x = conv_act_norm(
-            x, 32, (3, 3), name='transfer', name_index=next(index_gen))
+            x,
+            32, (3, 3),
+            name='transfer',
+            use_leaky=self.use_leaky,
+            name_index=next(index_gen))
 
         x = Conv2D(
             3, (9, 9),
