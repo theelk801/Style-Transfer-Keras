@@ -3,16 +3,36 @@ import json
 import scipy
 import scipy.misc
 
+from PIL import Image
 from keras.utils import Sequence
 
 
-def open_im(image_path, img_size=None):
-    img = scipy.misc.imread(image_path)
-    if (len(img.shape) != 3) or (img.shape[2] != 3):
-        img = np.dstack((img, img, img))
+def open_im(image_path, img_size=None, crop_to_four=False):
+    img = Image.open(image_path)
 
     if (img_size is not None):
-        img = scipy.misc.imresize(img, img_size)
+        img = img.resize(img_size)
+
+    if crop_to_four:
+        w, h = img.size
+        top = right = bottom = left = 0
+        w_offset = w % 4
+        h_offset = h % 4
+
+        left += w_offset // 2
+        left += w_offset % 2
+        right += w_offset // 2
+
+        top += h_offset // 2
+        top += h_offset % 2
+        bottom += h_offset // 2
+
+        img = img.crop((left, top, w - right, h - bottom))
+
+    img = np.array(img)
+
+    if (len(img.shape) != 3) or (img.shape[2] != 3):
+        img = np.dstack((img, img, img))
 
     img = img.astype("float32")
     return img
@@ -21,8 +41,8 @@ def open_im(image_path, img_size=None):
 def get_samples(sample_dir, sample_im_names):
     sample_ims = dict()
     for sample_name in sample_im_names:
-        sample_ims[
-            sample_name] = open_im(sample_dir + sample_name + '.jpg') / 255
+        sample_ims[sample_name] = open_im(
+            sample_dir + sample_name + '.jpg', crop_to_four=True) / 255
     return sample_ims
 
 
