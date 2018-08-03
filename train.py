@@ -5,8 +5,8 @@ from models import *
 def main(args):
     batch_size = 8
     image_size = 256
-    style_weight = 100,
-    content_weight = 7.5,
+    style_weight = 5.0,
+    content_weight = 1.0,
     denoising_weight = 0.05,
     verbose = True
     cores = 8
