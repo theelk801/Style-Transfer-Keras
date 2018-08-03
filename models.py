@@ -12,6 +12,8 @@ K.set_image_data_format('channels_last')
 
 
 def build_and_train(style_name,
+                    style_layers,
+                    content_layer,
                     batch_size=8,
                     image_size=256,
                     style_weight=5.0,
@@ -20,9 +22,12 @@ def build_and_train(style_name,
                     verbose=True,
                     cores=8,
                     epochs=5,
-                    repeat=1):
+                    repeat=1,
+                    extra_name=None):
     transfer = TransferModel(
         style_name,
+        style_layers,
+        content_layer,
         batch_size=batch_size,
         image_size=image_size,
         style_weight=style_weight,
@@ -31,8 +36,8 @@ def build_and_train(style_name,
         verbose=verbose)
     for _ in range(repeat):
         transfer.train(cores=cores, epochs=epochs)
-        transfer.save_transfer_model()
-        transfer.save_samples()
+        transfer.save_transfer_model(extra_name)
+        transfer.save_samples(extra_name)
 
 
 def conv_act_norm(inp,
@@ -78,9 +83,6 @@ class GramMatrix(Layer):
 
 
 class TransferModel:
-    STYLE_LAYERS = ('block1_conv1', 'block2_conv1', 'block3_conv1',
-                    'block4_conv1', 'block5_conv1')
-    CONTENT_LAYER = 'block4_conv2'
     sample_im_names = ['mountains', 'family', 'city', 'dogs']
     style_dir = './data/styles/'
     train_dir = './data/contents/resized/'
@@ -88,6 +90,8 @@ class TransferModel:
 
     def __init__(self,
                  style_name,
+                 style_layers,
+                 content_layer,
                  batch_size=8,
                  image_size=256,
                  style_weight=5.0,
@@ -102,6 +106,8 @@ class TransferModel:
         self.verbose = verbose
         self.image_shape = (image_size, image_size, 3)
         self.style_name = style_name
+        self.STYLE_LAYERS = style_layers
+        self.CONTENT_LAYER = content_layer
 
         self.vgg = VGG19(include_top=False)
         self.inp = Input(self.image_shape)
@@ -300,18 +306,25 @@ class TransferModel:
         self.epochs_trained += epochs
         return history
 
-    def save_transfer_model(self):
-        self.transfer_net.save(
-            f'./data/models/{self.style_name}_transfer_model_{self.epochs_trained}.h5'
-        )
+    def save_transfer_model(self, extra_name=None):
+        save_name = f'./data/models/{self.style_name[:-4]}_transfer_model_{self.epochs_trained}'
+        if extra_name is not None:
+            save_name += '_'
+            save_name += extra_name
+        save_name += '.h5'
+        self.transfer_net.save(save_name)
         if self.verbose:
             print(f'Model saved after {self.epochs_trained} epochs')
 
-    def save_samples(self):
+    def save_samples(self, extra_name=None):
         for key in self.sample_ims.keys():
             im = self.transfer_net.predict(
                 np.expand_dims(self.sample_ims[key], axis=0))[0]
-            save_name = f'./data/output/{self.style_name[:-4]}_{key}_{self.epochs_trained}.jpg'
+            save_name = f'./data/output/{self.style_name[:-4]}_{key}_{self.epochs_trained}'
+            if extra_name is not None:
+                save_name += '_'
+                save_name += extra_name
+            save_name += '.jpg'
             save_image(255 * im, save_name)
         if self.verbose:
             print(f'Samples saved after {self.epochs_trained} epochs')
