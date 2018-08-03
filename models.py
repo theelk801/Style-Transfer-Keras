@@ -189,16 +189,14 @@ class TransferModel:
     def _create_style_model(self):
         style_models = []
         gram_sum = 0.0
+        size_dict = get_layer_shapes()
 
         for j, layer_name in enumerate(self.STYLE_LAYERS):
             x = self.inp
-
-            pixel_count = (self.image_shape[0] * self.image_shape[1]) // (4**j)
-            gram_size = 64 * (2**j)
-
-            if j == 4:
-                pixel_count = pixel_count
-                gram_size = gram_size // 2
+            layer_output = size_dict[layer_name]
+            pixel_count = (self.image_shape[0] * self.image_shape[1]) // (
+                layer_output[0] * layer_output[1])
+            gram_size = layer_output[2]
 
             for i, l in enumerate(self.vgg.layers):
                 if i != 0:

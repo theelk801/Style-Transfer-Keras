@@ -1,4 +1,5 @@
 import numpy as np
+import json
 import scipy
 import scipy.misc
 
@@ -27,6 +28,11 @@ def get_samples(sample_dir, sample_im_names):
 
 def save_image(img, path):
     scipy.misc.imsave(path, np.clip(img, 0, 255).astype(np.uint8))
+
+
+def get_layer_shapes():
+    with open('layer_sizes.json') as file:
+        return json.load(file)
 
 
 class DataGenerator(Sequence):
