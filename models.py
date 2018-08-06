@@ -4,7 +4,7 @@ from itertools import count
 
 from keras.models import Model
 from keras.applications import VGG19
-from keras.layers import Layer, Flatten, Input, Conv2D, UpSampling2D, Activation, Concatenate, Add, Subtract, Reshape, Lambda, ZeroPadding2D, Cropping2D, LeakyReLU
+from keras.layers import Layer, Flatten, Input, Conv2D, Conv2DTranspose, UpSampling2D, Activation, Concatenate, Add, Subtract, Reshape, Lambda, ZeroPadding2D, Cropping2D, LeakyReLU
 from keras_contrib.layers import InstanceNormalization
 from keras import backend as K
 
@@ -19,7 +19,6 @@ def build_and_train(style_name,
                     style_weight=5.0,
                     content_weight=1.0,
                     denoising_weight=1.0e-6,
-                    use_leaky=True,
                     verbose=True,
                     cores=8,
                     epochs=5,
@@ -34,7 +33,6 @@ def build_and_train(style_name,
         style_weight=style_weight,
         content_weight=content_weight,
         denoising_weight=denoising_weight,
-        use_leaky=use_leaky,
         verbose=verbose)
     for _ in range(repeat):
         transfer.train(cores=cores, epochs=epochs)
@@ -48,22 +46,40 @@ def conv_act_norm(inp,
                   strides=(1, 1),
                   padding='same',
                   alpha=0.02,
-                  use_leaky=True,
+                  use_act=True,
+                  deconv=False,
                   name=None,
                   name_index=None):
     conv_name = act_name = norm_name = None
     if name is not None and name_index is not None:
-        conv_name = name + f'_conv_{name_index}'
+        if deconv:
+            conv_name = name + f'_deconv_{name_index}'
+        else:
+            conv_name = name + f'_conv_{name_index}'
         act_name = name + f'_act_{name_index}'
         norm_name = name + f'_norm_{name_index}'
-    x = Conv2D(
-        kernels, conv_window, strides=strides, padding=padding,
-        name=conv_name)(inp)
-    x = InstanceNormalization(axis=3, name=norm_name)(x)
-    if use_leaky:
-        x = LeakyReLU(alpha, name=act_name)(x)
+
+    if deconv:
+        x = Conv2DTranspose(
+            kernels,
+            conv_window,
+            strides=strides,
+            padding=padding,
+            name=conv_name)(inp)
+
     else:
-        x = Activation('relu', name=act_name)(x)
+        x = Conv2D(
+            kernels,
+            conv_window,
+            strides=strides,
+            padding=padding,
+            name=conv_name)(inp)
+
+    x = InstanceNormalization(axis=3, name=norm_name)(x)
+
+    if use_act:
+        x = LeakyReLU(alpha, name=act_name)(x)
+
     return x
 
 
@@ -103,14 +119,12 @@ class TransferModel:
                  style_weight=5.0,
                  content_weight=1.0,
                  denoising_weight=1.0e-6,
-                 use_leaky=True,
                  verbose=True):
         self.batch_size = batch_size
         self.image_size = image_size
         self.style_weight = style_weight
         self.content_weight = content_weight
         self.denoising_weight = denoising_weight
-        self.use_leaky = use_leaky
         self.verbose = verbose
         self.image_shape = (image_size, image_size, 3)
         self.style_name = style_name
@@ -147,70 +161,64 @@ class TransferModel:
         x = inp
 
         x = conv_act_norm(
-            x,
-            32, (9, 9),
-            name='transfer',
-            use_leaky=self.use_leaky,
-            name_index=next(index_gen))
+            x, 32, (9, 9), name='transfer', name_index=next(index_gen))
+
         x = conv_act_norm(
             x,
             64, (3, 3),
             strides=(2, 2),
             name='transfer',
-            use_leaky=self.use_leaky,
             name_index=next(index_gen))
+
         x = conv_act_norm(
             x,
             128, (3, 3),
             strides=(2, 2),
             name='transfer',
-            use_leaky=self.use_leaky,
             name_index=next(index_gen))
 
         for _ in range(5):
             temp = conv_act_norm(
-                x,
-                128, (3, 3),
-                name='transfer',
-                use_leaky=self.use_leaky,
-                name_index=next(index_gen))
+                x, 128, (3, 3), name='transfer', name_index=next(index_gen))
+
             temp = conv_act_norm(
                 temp,
                 128, (3, 3),
                 name='transfer',
-                use_leaky=self.use_leaky,
+                use_act=False,
                 name_index=next(index_gen))
+
             x = Concatenate(axis=3)([x, temp])
-
-        x = UpSampling2D((2, 2), name='upsampling_1')(x)
-
-        x = conv_act_norm(
-            x,
-            256, (3, 3),
-            name='transfer',
-            use_leaky=self.use_leaky,
-            name_index=next(index_gen))
-        x = conv_act_norm(
-            x,
-            128, (3, 3),
-            name='transfer',
-            use_leaky=self.use_leaky,
-            name_index=next(index_gen))
-
-        x = UpSampling2D((2, 2), name='upsampling_2')(x)
 
         x = conv_act_norm(
             x,
             64, (3, 3),
+            strides=(2, 2),
             name='transfer',
-            use_leaky=self.use_leaky,
+            deconv=True,
             name_index=next(index_gen))
+
         x = conv_act_norm(
             x,
             32, (3, 3),
+            strides=(2, 2),
             name='transfer',
-            use_leaky=self.use_leaky,
+            deconv=True,
             name_index=next(index_gen))
+
+        # x = UpSampling2D((2, 2), name='upsampling_1')(x)
+        #
+        # x = conv_act_norm(
+        #     x, 256, (3, 3), name='transfer', name_index=next(index_gen))
+        # x = conv_act_norm(
+        #     x, 128, (3, 3), name='transfer', name_index=next(index_gen))
+        #
+        # x = UpSampling2D((2, 2), name='upsampling_2')(x)
+        #
+        # x = conv_act_norm(
+        #     x, 64, (3, 3), name='transfer', name_index=next(index_gen))
+        # x = conv_act_norm(
+        #     x, 32, (3, 3), name='transfer', name_index=next(index_gen))
 
         x = Conv2D(
             3, (9, 9),
@@ -225,9 +233,11 @@ class TransferModel:
         x = Lambda(lambda t: (t + 1) / 2, name='transfer')(x)
 
         transfer_net = Model(inp, x)
+
         if self.verbose:
             print('Transfer model built')
             transfer_net.summary()
+
         return transfer_net
 
     def _create_style_model(self):

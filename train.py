@@ -9,6 +9,9 @@ def main(args):
     content_weight = 1.0,
     denoising_weight = 0.05,
     verbose = True
+    style_layers = ('block1_conv2', 'block2_conv2', 'block3_conv3',
+                    'block4_conv3')
+    content_layer = 'block3_conv3'
     cores = 8
     epochs = 1
     repeat = 20
@@ -18,6 +21,8 @@ def main(args):
         style_name = 'style.jpg'
     build_and_train(
         style_name=style_name,
+        style_layers=style_layers,
+        content_layer=content_layer,
         batch_size=batch_size,
         image_size=image_size,
         style_weight=style_weight,
