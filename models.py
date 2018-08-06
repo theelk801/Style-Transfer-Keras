@@ -19,6 +19,8 @@ def build_and_train(style_name,
                     style_weight=5.0,
                     content_weight=1.0,
                     denoising_weight=1.0e-6,
+                    use_deconv=False,
+                    transfer_as_changes=True,
                     verbose=True,
                     cores=8,
                     epochs=5,
@@ -33,6 +35,8 @@ def build_and_train(style_name,
         style_weight=style_weight,
         content_weight=content_weight,
         denoising_weight=denoising_weight,
+        use_deconv=use_deconv,
+        transfer_as_changes=transfer_as_changes,
         verbose=verbose)
     for _ in range(repeat):
         transfer.train(cores=cores, epochs=epochs)
@@ -119,17 +123,22 @@ class TransferModel:
                  style_weight=5.0,
                  content_weight=1.0,
                  denoising_weight=1.0e-6,
+                 use_deconv=False,
+                 transfer_as_changes=True,
                  verbose=True):
         self.batch_size = batch_size
         self.image_size = image_size
         self.style_weight = style_weight
         self.content_weight = content_weight
         self.denoising_weight = denoising_weight
-        self.verbose = verbose
         self.image_shape = (image_size, image_size, 3)
         self.style_name = style_name
         self.STYLE_LAYERS = style_layers
         self.CONTENT_LAYER = content_layer
+
+        self.use_deconv = use_deconv
+        self.transfer_as_changes = transfer_as_changes
+        self.verbose = verbose
 
         self.vgg = VGG19(include_top=False)
         self.inp = Input(self.image_shape)
@@ -190,35 +199,37 @@ class TransferModel:
 
             x = Add()([x, temp])
 
-        x = conv_act_norm(
-            x,
-            64, (3, 3),
-            strides=(2, 2),
-            name='transfer',
-            deconv=True,
-            name_index=next(index_gen))
+        if self.use_deconv:
+            x = conv_act_norm(
+                x,
+                64, (3, 3),
+                strides=(2, 2),
+                name='transfer',
+                deconv=True,
+                name_index=next(index_gen))
 
-        x = conv_act_norm(
-            x,
-            32, (3, 3),
-            strides=(2, 2),
-            name='transfer',
-            deconv=True,
-            name_index=next(index_gen))
+            x = conv_act_norm(
+                x,
+                32, (3, 3),
+                strides=(2, 2),
+                name='transfer',
+                deconv=True,
+                name_index=next(index_gen))
 
-        # x = UpSampling2D((2, 2), name='upsampling_1')(x)
-        #
-        # x = conv_act_norm(
-        #     x, 256, (3, 3), name='transfer', name_index=next(index_gen))
-        # x = conv_act_norm(
-        #     x, 128, (3, 3), name='transfer', name_index=next(index_gen))
-        #
-        # x = UpSampling2D((2, 2), name='upsampling_2')(x)
-        #
-        # x = conv_act_norm(
-        #     x, 64, (3, 3), name='transfer', name_index=next(index_gen))
-        # x = conv_act_norm(
-        #     x, 32, (3, 3), name='transfer', name_index=next(index_gen))
+        else:
+            x = UpSampling2D((2, 2), name='upsampling_1')(x)
+
+            x = conv_act_norm(
+                x, 256, (3, 3), name='transfer', name_index=next(index_gen))
+            x = conv_act_norm(
+                x, 128, (3, 3), name='transfer', name_index=next(index_gen))
+
+            x = UpSampling2D((2, 2), name='upsampling_2')(x)
+
+            x = conv_act_norm(
+                x, 64, (3, 3), name='transfer', name_index=next(index_gen))
+            x = conv_act_norm(
+                x, 32, (3, 3), name='transfer', name_index=next(index_gen))
 
         x = Conv2D(
             3, (9, 9),
@@ -226,7 +237,8 @@ class TransferModel:
             activation='tanh',
             name=f'transfer_conv_{next(index_gen)}')(x)
 
-        x = Add(name='transfer_add')([inp, x])
+        if self.transfer_as_changes:
+            x = Add(name='transfer_add')([inp, x])
 
         x = Activation('tanh', name='transfer_final_tanh')(x)
 
