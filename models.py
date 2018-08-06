@@ -188,7 +188,7 @@ class TransferModel:
                 use_act=False,
                 name_index=next(index_gen))
 
-            x = Concatenate(axis=3)([x, temp])
+            x = Add()([x, temp])
 
         x = conv_act_norm(
             x,
