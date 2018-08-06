@@ -11,7 +11,7 @@ def open_im(image_path, img_size=None, crop_to_four=False):
     img = Image.open(image_path)
 
     if (img_size is not None):
-        img = img.resize(img_size)
+        img = img.resize(img_size[:2])
 
     if crop_to_four:
         w, h = img.size
