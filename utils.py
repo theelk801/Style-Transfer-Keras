@@ -50,11 +50,6 @@ def save_image(img, path):
     scipy.misc.imsave(path, np.clip(img, 0, 255).astype(np.uint8))
 
 
-def get_layer_shapes():
-    with open('layer_sizes.json') as file:
-        return json.load(file)
-
-
 class DataGenerator(Sequence):
     def __init__(self,
                  img_dir,

@@ -4,7 +4,7 @@ from itertools import count
 
 from keras.models import Model
 from keras.applications import VGG19
-from keras.layers import Layer, Flatten, Input, Conv2D, Conv2DTranspose, UpSampling2D, Activation, Concatenate, Add, Subtract, Reshape, Lambda, ZeroPadding2D, Cropping2D, LeakyReLU
+from keras.layers import Layer, Flatten, Input, Conv2D, Conv2DTranspose, UpSampling2D, Activation, Concatenate, Add, Subtract, Lambda, ZeroPadding2D, Cropping2D, LeakyReLU
 from keras_contrib.layers import InstanceNormalization
 from keras import backend as K
 
@@ -99,10 +99,11 @@ class GramMatrix(Layer):
         super(GramMatrix, self).build(input_shape)
 
     def call(self, inputs, **kwargs):
+        b, w, h, c = inputs.get_shape()
+        temp = K.reshape(inputs, (-1, int(w * h), int(c)))
         temp = K.batch_dot(
-            inputs, K.permute_dimensions(inputs, (0, 2, 1)), axes=[1, 2])
-        b, hw, c = temp.get_shape()
-        return temp / int(hw * c)
+            temp, K.permute_dimensions(temp, (0, 2, 1)), axes=[1, 2])
+        return temp / int(w * h * c)
 
     def compute_output_shape(self, input_shape):
         return input_shape[0], input_shape[-1], input_shape[-1]
@@ -140,7 +141,7 @@ class TransferModel:
         self.transfer_as_changes = transfer_as_changes
         self.verbose = verbose
 
-        self.vgg = VGG19(include_top=False)
+        self.vgg = VGG19(include_top=False, input_shape=self.image_shape)
         self.inp = Input(self.image_shape)
         self.epochs_trained = 0
 
@@ -254,15 +255,9 @@ class TransferModel:
 
     def _create_style_model(self):
         style_models = []
-        gram_sum = 0.0
-        size_dict = get_layer_shapes()
 
         for j, layer_name in enumerate(self.STYLE_LAYERS):
             x = self.inp
-            layer_output = size_dict[layer_name]
-            pixel_count = (self.image_shape[0] * self.image_shape[1]) // (
-                layer_output[0] * layer_output[1])
-            gram_size = layer_output[2]
 
             for i, l in enumerate(self.vgg.layers):
                 if i != 0:
@@ -270,23 +265,21 @@ class TransferModel:
                     if l.name == layer_name:
                         break
 
-            x = Reshape((pixel_count, gram_size), name=f'style_reshape_{j}')(x)
             x = GramMatrix(name=f'style_gram_{j}')(x)
             x = Flatten(name=f'style_flatten_{j}')(x)
-            x = Lambda(
-                lambda t: t / (gram_size**2), name=f'style_weight_{j}')(x)
 
-            gram_sum += (gram_size**2)
             style_models += [x]
 
         x = Concatenate(name='style_concatenate')(style_models)
-        x = Lambda(lambda t: gram_sum * t, name='style_flatten_last')(x)
+
         style_model = Model(self.inp, x)
         style_model.trainable = False
         style_model.name = 'style_model'
+
         if self.verbose:
             print('Style model built')
             style_model.summary()
+
         return style_model
 
     def _create_content_model(self):
@@ -300,17 +293,20 @@ class TransferModel:
         x = Flatten(name='content_flatten')(x)
 
         content_model = Model(self.inp, x)
-        content_model.trainable = False
 
         x = Subtract(name='content_subtract')([
             content_model(self.inp),
             content_model(self.transfer_net(self.inp))
         ])
+
         content_model = Model(self.inp, x)
         content_model.name = 'content_model'
+        content_model.trainable = False
+
         if self.verbose:
             print('Content model built')
             content_model.summary()
+
         return content_model
 
     def _create_denoising_model(self):
@@ -319,22 +315,30 @@ class TransferModel:
                           name='padding_1')(self.inp),
             ZeroPadding2D(padding=((0, 0), (1, 0)), name='padding_2')(self.inp)
         ])
+
         x = Cropping2D(cropping=((0, 0), (1, 1)), name='cropping_1')(x)
+
         y = Subtract(name='denoising_subtract_2')([
             ZeroPadding2D(padding=((0, 1), (0, 0)),
                           name='padding_3')(self.inp),
             ZeroPadding2D(padding=((1, 0), (0, 0)), name='padding_4')(self.inp)
         ])
+
         y = Cropping2D(cropping=((1, 1), (0, 0)), name='cropping_2')(y)
+
         x = Flatten(name='denoising_flatten_1')(x)
         y = Flatten(name='denoising_flatten_2')(y)
+
         x = Concatenate(name='denoising_concatenate')([x, y])
         x = Lambda(lambda t: t, name='denoising_scale')(x)
+
         denoising_model = Model(self.inp, x)
         denoising_model.name = 'denoising_model'
+
         if self.verbose:
             print('Denoising model built')
             denoising_model.summary()
+
         return denoising_model
 
     def _create_transfer_train(self):
@@ -343,9 +347,11 @@ class TransferModel:
             self.content_model(self.inp),
             self.denoising_model(self.transfer_net(self.inp))
         ])
+
         if self.verbose:
             print('Full training model built')
             transfer_train.summary()
+
         transfer_train.compile(
             'adam',
             loss=l2_loss,
