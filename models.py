@@ -102,7 +102,7 @@ class GramMatrix(Layer):
         b, w, h, c = inputs.get_shape()
         temp = K.reshape(inputs, (-1, int(w * h), int(c)))
         temp = K.batch_dot(
-            temp, K.permute_dimensions(temp, (0, 2, 1)), axes=[1, 2])
+            K.permute_dimensions(temp, (0, 2, 1)), temp, axes=[1, 2])
         return temp / int(w * h * c * c)
 
     def compute_output_shape(self, input_shape):
