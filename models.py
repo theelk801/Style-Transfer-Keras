@@ -103,7 +103,7 @@ class GramMatrix(Layer):
         temp = K.reshape(inputs, (-1, int(w * h), int(c)))
         temp = K.batch_dot(
             temp, K.permute_dimensions(temp, (0, 2, 1)), axes=[1, 2])
-        return temp / int(w * h * c)
+        return temp / int(w * h * (int(c)**5))
 
     def compute_output_shape(self, input_shape):
         return input_shape[0], input_shape[-1], input_shape[-1]
@@ -354,7 +354,11 @@ class TransferModel:
 
         transfer_train.compile(
             'adam',
-            loss=l2_loss,
+            loss={
+                'style_model': l2_loss,
+                'content_model': 'mse',
+                'denoising_model': 'mse'
+            },
             loss_weights={
                 'style_model': self.style_weight,
                 'content_model': self.content_weight,

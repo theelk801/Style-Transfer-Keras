@@ -7,7 +7,7 @@ def main(args):
     image_size = 256
     style_weight = 5.0,
     content_weight = 1.0,
-    denoising_weight = 0.05,
+    denoising_weight = 1.0e-6,
     verbose = True
     style_layers = ('block1_conv2', 'block2_conv2', 'block3_conv3',
                     'block4_conv3')
