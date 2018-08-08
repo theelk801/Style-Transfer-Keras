@@ -1,53 +1,41 @@
 import numpy as np
-import json
-import scipy
-import scipy.misc
 
-from PIL import Image
+from keras import backend as K
 from keras.utils import Sequence
+from keras.preprocessing import image
+from keras.applications import vgg19
+
+K.set_image_data_format('channels_last')
 
 
 def open_im(image_path, img_size=None, crop_to_four=False):
-    img = Image.open(image_path)
+    if img_size is not None:
+        w, h, _ = img_size
+        if crop_to_four:
+            w -= w % 4
+            h -= h % 4
+        img_size = (w, h)
 
-    if (img_size is not None):
-        img = img.resize(img_size[:2])
+    img = image.load_img(image_path, target_size=img_size)
+    img = image.img_to_array(img)
 
-    if crop_to_four:
-        w, h = img.size
-        top = right = bottom = left = 0
-        w_offset = w % 4
-        h_offset = h % 4
-
-        left += w_offset // 2
-        left += w_offset % 2
-        right += w_offset // 2
-
-        top += h_offset // 2
-        top += h_offset % 2
-        bottom += h_offset // 2
-
-        img = img.crop((left, top, w - right, h - bottom))
-
-    img = np.array(img)
-
-    if (len(img.shape) != 3) or (img.shape[2] != 3):
-        img = np.dstack((img, img, img))
-
-    img = img.astype("float32")
-    return img
+    return vgg19.preprocess_input(img)
 
 
 def get_samples(sample_dir, sample_im_names):
     sample_ims = dict()
     for sample_name in sample_im_names:
         sample_ims[sample_name] = open_im(
-            sample_dir + sample_name + '.jpg', crop_to_four=True) / 255
+            sample_dir + sample_name + '.jpg', crop_to_four=True)
     return sample_ims
 
 
 def save_image(img, path):
-    scipy.misc.imsave(path, np.clip(img, 0, 255).astype(np.uint8))
+    h, w, _ = img.shape
+    offset = np.array(h * [w * [[0, 0, 0]]])
+    offset = vgg19.preprocess_input(offset)
+    image.array_to_img(
+        np.clip(img - offset, 0, 255).astype(np.uint8)[..., ::-1]).save(path)
 
 
 class DataGenerator(Sequence):
@@ -92,7 +80,7 @@ class DataGenerator(Sequence):
         x = np.empty((self.batch_size, self.h, self.w, self.c))
 
         for i, im in enumerate(im_temp):
-            x[i, ] = open_im(self.train_path + im, (self.h, self.w)) / 255
+            x[i, ] = open_im(self.train_path + im, (self.h, self.w))
 
         return x, [
             self.style_features, self.content_zeroes, self.denoising_zeroes

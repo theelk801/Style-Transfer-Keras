@@ -154,7 +154,7 @@ class TransferModel:
         self.sample_ims = get_samples(self.sample_dir, self.sample_im_names)
 
         self.style_image = open_im(self.style_dir + self.style_name,
-                                   self.image_shape) / 255
+                                   self.image_shape)
         self.style_image = np.expand_dims(self.style_image, axis=0)
         self.style_features = self.style_model.predict(self.style_image)
         self.img_dir = os.listdir(self.train_dir)
@@ -243,7 +243,7 @@ class TransferModel:
 
         x = Activation('tanh', name='transfer_final_tanh')(x)
 
-        x = Lambda(lambda t: (t + 1) / 2, name='transfer')(x)
+        x = Lambda(lambda t: 255 * t, name='transfer')(x)
 
         transfer_net = Model(inp, x)
 
@@ -393,6 +393,6 @@ class TransferModel:
                 save_name += '_'
                 save_name += extra_name
             save_name += '.jpg'
-            save_image(255 * im, save_name)
+            save_image(im, save_name)
         if self.verbose:
             print(f'Samples saved after {self.epochs_trained} epochs')
