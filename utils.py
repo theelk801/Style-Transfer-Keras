@@ -9,14 +9,15 @@ K.set_image_data_format('channels_last')
 
 
 def open_im(image_path, img_size=None, crop_to_four=False):
+    size = None
     if img_size is not None:
-        w, h, _ = img_size
+        w, h, _ = img_size[:2]
         if crop_to_four:
             w -= w % 4
             h -= h % 4
-        img_size = (w, h)
+        size = (w, h)
 
-    img = image.load_img(image_path, target_size=img_size)
+    img = image.load_img(image_path, target_size=size)
     img = image.img_to_array(img)
 
     return vgg19.preprocess_input(img)

@@ -103,7 +103,7 @@ class GramMatrix(Layer):
         temp = K.reshape(inputs, (-1, int(w * h), int(c)))
         temp = K.batch_dot(
             temp, K.permute_dimensions(temp, (0, 2, 1)), axes=[1, 2])
-        return temp / (2 * int(c * c))
+        return temp / (2 * int(w * h * c * c))
 
     def compute_output_shape(self, input_shape):
         return input_shape[0], input_shape[-1], input_shape[-1]
@@ -243,7 +243,7 @@ class TransferModel:
 
         x = Activation('tanh', name='transfer_final_tanh')(x)
 
-        x = Lambda(lambda t: 255 * t, name='transfer')(x)
+        x = Lambda(lambda t: 150 * t, name='transfer')(x)
 
         transfer_net = Model(inp, x)
 
