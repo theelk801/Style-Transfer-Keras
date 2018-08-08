@@ -256,19 +256,17 @@ class TransferModel:
     def _create_style_model(self):
         style_models = []
 
-        for j, layer_name in enumerate(self.STYLE_LAYERS):
-            x = self.inp
-
-            for i, l in enumerate(self.vgg.layers):
-                if i != 0:
-                    x = l(x)
-                    if l.name == layer_name:
-                        break
-
-            x = GramMatrix(name=f'style_gram_{j}')(x)
-            x = Flatten(name=f'style_flatten_{j}')(x)
-
-            style_models += [x]
+        x = self.inp
+        j = 0
+        for i, l in enumerate(self.vgg.layers):
+            if i == 0:
+                continue
+            x = l(x)
+            if l.name in self.STYLE_LAYERS:
+                y = GramMatrix(name=f'style_gram_{j}')(x)
+                y = Flatten(name=f'style_flatten_{j}')(y)
+                j += 1
+                style_models += [y]
 
         x = Concatenate(name='style_concatenate')(style_models)
 
