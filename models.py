@@ -88,7 +88,7 @@ def conv_act_norm(inp,
 
 
 def l2_loss(y_true, y_pred):
-    return K.sum(K.square(y_pred - y_true), axis=-1) / 2
+    return K.sum(K.square(y_pred - y_true), axis=-1)
 
 
 class GramMatrix(Layer):
@@ -102,8 +102,8 @@ class GramMatrix(Layer):
         b, w, h, c = inputs.get_shape()
         temp = K.reshape(inputs, (-1, int(w * h), int(c)))
         temp = K.batch_dot(
-            K.permute_dimensions(temp, (0, 2, 1)), temp, axes=[1, 2])
-        return temp / int(w * h * c * c)
+            temp, K.permute_dimensions(temp, (0, 2, 1)), axes=[1, 2])
+        return temp / int(2 * c * c)
 
     def compute_output_shape(self, input_shape):
         return input_shape[0], input_shape[-1], input_shape[-1]
