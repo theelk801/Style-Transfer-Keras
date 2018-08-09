@@ -11,13 +11,16 @@ K.set_image_data_format('channels_last')
 def open_im(image_path, img_size=None, crop_to_four=False):
     size = None
     if img_size is not None:
-        w, h = img_size[:2]
-        if crop_to_four:
-            w -= w % 4
-            h -= h % 4
-        size = (w, h)
+        size = img_size[:2]
 
     img = image.load_img(image_path, target_size=size)
+
+    if crop_to_four:
+        w, h = img.size
+        w -= w % 4
+        h -= h % 4
+        img = img.resize((w, h))
+
     img = image.img_to_array(img)
 
     return preprocess_input(img)
