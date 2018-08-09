@@ -3,7 +3,7 @@ import numpy as np
 from keras import backend as K
 from keras.utils import Sequence
 from keras.preprocessing import image
-from keras.applications import vgg19
+from keras.applications.vgg19 import preprocess_input
 
 K.set_image_data_format('channels_last')
 
@@ -20,7 +20,7 @@ def open_im(image_path, img_size=None, crop_to_four=False):
     img = image.load_img(image_path, target_size=size)
     img = image.img_to_array(img)
 
-    return vgg19.preprocess_input(img)
+    return preprocess_input(img)
 
 
 def get_samples(sample_dir, sample_im_names):
@@ -32,11 +32,13 @@ def get_samples(sample_dir, sample_im_names):
 
 
 def save_image(img, path):
-    h, w, _ = img.shape
-    offset = np.array(h * [w * [[0, 0, 0]]])
-    offset = vgg19.preprocess_input(offset)
-    image.array_to_img(
-        np.clip(img - offset, 0, 255).astype(np.uint8)[..., ::-1]).save(path)
+    convert_output(img).save(path)
+
+
+def convert_output(img):
+    offset = preprocess_input(np.zeros_like(img))
+    return image.array_to_img(
+        np.clip(img - offset, 0, 255).astype(np.uint8)[..., ::-1])
 
 
 class DataGenerator(Sequence):
