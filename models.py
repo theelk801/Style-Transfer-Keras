@@ -241,8 +241,7 @@ class TransferModel:
 
         if self.transfer_as_changes:
             x = Add(name='transfer_add')([inp, x])
-
-        x = Activation('tanh', name='transfer_final_tanh')(x)
+            x = Activation('tanh', name='transfer_final_tanh')(x)
 
         x = Lambda(lambda t: 150 * t, name='transfer')(x)
 
