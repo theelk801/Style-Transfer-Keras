@@ -11,7 +11,7 @@ K.set_image_data_format('channels_last')
 def open_im(image_path, img_size=None, crop_to_four=False):
     size = None
     if img_size is not None:
-        w, h, _ = img_size[:2]
+        w, h = img_size[:2]
         if crop_to_four:
             w -= w % 4
             h -= h % 4

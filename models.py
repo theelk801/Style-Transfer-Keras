@@ -125,7 +125,7 @@ class TransferModel:
                  content_weight=1.0,
                  denoising_weight=1.0e-6,
                  use_deconv=False,
-                 transfer_as_changes=True,
+                 transfer_as_changes=False,
                  verbose=True):
         self.batch_size = batch_size
         self.image_size = image_size
