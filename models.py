@@ -12,8 +12,8 @@ K.set_image_data_format('channels_last')
 
 
 def build_and_train(style_name,
-                    style_layers,
-                    content_layer,
+                    style_layers=None,
+                    content_layer=None,
                     batch_size=8,
                     image_size=256,
                     style_weight=5.0,
@@ -115,16 +115,19 @@ class TransferModel:
     style_dir = './data/styles/'
     train_dir = './data/contents/resized/'
     sample_dir = './data/examples/'
+    STYLE_LAYERS = ('block1_conv2', 'block2_conv2', 'block3_conv3',
+                    'block4_conv3')
+    CONTENT_LAYER = 'block3_conv3'
 
     def __init__(self,
                  style_name,
-                 style_layers,
-                 content_layer,
+                 style_layers=None,
+                 content_layer=None,
                  batch_size=8,
                  image_size=256,
-                 style_weight=5.0,
-                 content_weight=1.0,
-                 denoising_weight=1.0e-6,
+                 style_weight=150.0,
+                 content_weight=7.5,
+                 denoising_weight=1.0,
                  use_deconv=False,
                  transfer_as_changes=False,
                  verbose=True):
@@ -135,8 +138,11 @@ class TransferModel:
         self.denoising_weight = denoising_weight
         self.image_shape = (image_size, image_size, 3)
         self.style_name = style_name
-        self.STYLE_LAYERS = style_layers
-        self.CONTENT_LAYER = content_layer
+
+        if style_layers is not None:
+            self.STYLE_LAYERS = style_layers
+        if content_layer is not None:
+            self.CONTENT_LAYER = content_layer
 
         self.use_deconv = use_deconv
         self.transfer_as_changes = transfer_as_changes
