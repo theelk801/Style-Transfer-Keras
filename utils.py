@@ -35,7 +35,7 @@ def get_samples(sample_dir, sample_im_names):
 
 
 def save_image(img, path):
-    convert_output(image.array_to_img(img)).save(path)
+    image.array_to_img(convert_output(img)).save(path)
 
 
 def convert_output(img):

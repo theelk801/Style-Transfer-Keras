@@ -243,7 +243,9 @@ class TransferModel:
             x = Add(name='transfer_add')([inp, x])
             x = Activation('tanh', name='transfer_final_tanh')(x)
 
-        x = Lambda(lambda t: 150 * t, name='transfer')(x)
+        x = Lambda(
+            lambda t: preprocess_input(127.5 * (t + 1)),
+            name='transfer_scale')(x)
 
         transfer_net = Model(inp, x)
 
@@ -291,6 +293,7 @@ class TransferModel:
         x = Flatten(name='content_flatten')(x)
 
         content_model = Model(self.inp, x)
+        content_model.trainable = False
 
         x = Subtract(name='content_subtract')([
             content_model(self.inp),
@@ -299,7 +302,6 @@ class TransferModel:
 
         content_model = Model(self.inp, x)
         content_model.name = 'content_model'
-        content_model.trainable = False
 
         if self.verbose:
             print('Content model built')
