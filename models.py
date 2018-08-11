@@ -150,7 +150,7 @@ class TransferModel:
         self.verbose = verbose
 
         self.vgg = VGG19(include_top=False, input_shape=self.image_shape)
-        self.inp = Input(self.image_shape)
+        self.inp = Input(self.image_shape, name='train_input')
         self.epochs_trained = 0
 
         self.transfer_net = self._create_transfer_net()
@@ -175,7 +175,7 @@ class TransferModel:
 
     def _create_transfer_net(self):
         index_gen = count(1)
-        inp = Input((None, None, 3))
+        inp = Input((None, None, 3), name='transfer_input')
         x = inp
 
         padding = 48
@@ -202,7 +202,7 @@ class TransferModel:
             name='transfer',
             name_index=next(index_gen))
 
-        for _ in range(5):
+        for i in range(5):
             temp = conv_act_norm(
                 x, 128, (3, 3), name='transfer', name_index=next(index_gen))
 
@@ -213,7 +213,7 @@ class TransferModel:
                 use_act=False,
                 name_index=next(index_gen))
 
-            x = Add()([x, temp])
+            x = Add(name=f'transfer_residual_add_{i + 1}')([x, temp])
 
         if self.use_deconv:
             x = conv_act_norm(
@@ -263,6 +263,7 @@ class TransferModel:
             name='transfer_scale')(x)
 
         transfer_net = Model(inp, x)
+        transfer_net.name = 'transfer_model'
 
         if self.verbose:
             print('Transfer model built')
@@ -309,14 +310,7 @@ class TransferModel:
 
         content_model = Model(self.inp, x)
         content_model.trainable = False
-
-        x = Subtract(name='content_subtract')([
-            content_model(self.inp),
-            content_model(self.transfer_net(self.inp))
-        ])
-
-        content_model = Model(self.inp, x)
-        content_model.name = 'content_model'
+        content_model.name = 'content'
 
         if self.verbose:
             print('Content model built')
@@ -357,11 +351,17 @@ class TransferModel:
         return denoising_model
 
     def _create_transfer_train(self):
-        transfer_train = Model(self.inp, [
-            self.style_model(self.transfer_net(self.inp)),
-            self.content_model(self.inp),
-            self.denoising_model(self.transfer_net(self.inp))
-        ])
+        transfer_train = Model(
+            self.inp, [
+                self.style_model(self.transfer_net(self.inp)),
+                Subtract(name='content_model')([
+                    self.content_model(self.inp),
+                    self.content_model(self.transfer_net(self.inp))
+                ]),
+                self.denoising_model(self.transfer_net(self.inp))
+            ])
+
+        transfer_train.name = 'transfer_train_model'
 
         if self.verbose:
             print('Full training model built')
