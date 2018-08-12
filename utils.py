@@ -1,11 +1,14 @@
 import numpy as np
 
+from tensorflow import pad
 from keras import backend as K
 from keras.utils import Sequence
 from keras.preprocessing import image
 from keras.applications.vgg19 import preprocess_input
+from keras.utils.generic_utils import get_custom_objects
 
 K.set_image_data_format('channels_last')
+get_custom_objects().update({'preprocess_input': preprocess_input, 'pad': pad})
 
 
 def open_im(image_path, img_size=None, crop_to_four=False):

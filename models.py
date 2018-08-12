@@ -1,7 +1,6 @@
 import os
 from utils import *
 from itertools import count
-from tensorflow import pad
 
 from keras.models import Model
 from keras.applications import VGG19
