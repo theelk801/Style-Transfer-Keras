@@ -4,7 +4,7 @@ from itertools import count
 
 from keras.models import Model
 from keras.applications import VGG19
-from keras.layers import Layer, Flatten, Input, Conv2D, Conv2DTranspose, UpSampling2D, Activation, Concatenate, Add, Subtract, Lambda, ZeroPadding2D, Cropping2D, LeakyReLU
+from keras.layers import Layer, Flatten, Input, Conv2D, Conv2DTranspose, SeparableConv2D, UpSampling2D, Activation, Concatenate, Add, Subtract, Lambda, ZeroPadding2D, Cropping2D, LeakyReLU
 from keras_contrib.layers import InstanceNormalization
 from keras import backend as K
 
@@ -53,6 +53,7 @@ def conv_act_norm(inp,
                   alpha=0.02,
                   use_act=True,
                   deconv=False,
+                  use_separable=False,
                   name=None,
                   name_index=None):
     conv_name = act_name = norm_name = None
@@ -66,6 +67,14 @@ def conv_act_norm(inp,
 
     if deconv:
         x = Conv2DTranspose(
+            kernels,
+            conv_window,
+            strides=strides,
+            padding=padding,
+            name=conv_name)(inp)
+
+    elif use_separable:
+        x = SeparableConv2D(
             kernels,
             conv_window,
             strides=strides,
