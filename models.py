@@ -20,7 +20,6 @@ def build_and_train(style_name,
                     content_weight=1.0,
                     denoising_weight=1.0e-6,
                     use_deconv=False,
-                    transfer_as_changes=False,
                     verbose=True,
                     cores=8,
                     epochs=5,
@@ -36,7 +35,6 @@ def build_and_train(style_name,
         content_weight=content_weight,
         denoising_weight=denoising_weight,
         use_deconv=use_deconv,
-        transfer_as_changes=transfer_as_changes,
         verbose=verbose)
     for _ in range(repeat):
         transfer.train(cores=cores, epochs=epochs)
@@ -137,7 +135,6 @@ class TransferModel:
                  content_weight=7.5,
                  denoising_weight=1.0,
                  use_deconv=False,
-                 transfer_as_changes=False,
                  verbose=True):
         self.batch_size = batch_size
         self.image_size = image_size
@@ -153,7 +150,6 @@ class TransferModel:
             self.CONTENT_LAYER = content_layer
 
         self.use_deconv = use_deconv
-        self.transfer_as_changes = transfer_as_changes
         self.verbose = verbose
 
         self.vgg = VGG19(include_top=False, input_shape=self.image_shape)
@@ -258,10 +254,6 @@ class TransferModel:
             padding='same',
             activation='tanh',
             name=f'transfer_conv_{next(index_gen)}')(x)
-
-        if self.transfer_as_changes:
-            x = Add(name='transfer_add')([inp, x])
-            x = Activation('tanh', name='transfer_final_tanh')(x)
 
         x = Cropping2D((padding, padding), name='transfer_cropping')(x)
         x = Lambda(
