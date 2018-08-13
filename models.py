@@ -161,17 +161,17 @@ class TransferModel:
         self.epochs_trained = 0
 
         self.transfer_net = self._create_transfer_net()
-        self.style_model = self._create_style_model()
+        self.style_model = self._create_style_model(self.inp)
         self.content_model = self._create_content_model()
         self.denoising_model = self._create_denoising_model()
         self.transfer_train = self._create_transfer_train()
 
         self.sample_ims = get_samples(self.sample_dir, self.sample_im_names)
 
-        self.style_image = open_im(self.style_dir + self.style_name,
-                                   self.image_shape)
+        self.style_image = open_im(
+            self.style_dir + self.style_name, crop_to_four=True)
         self.style_image = np.expand_dims(self.style_image, axis=0)
-        self.style_features = self.style_model.predict(self.style_image)
+        self.style_features = self._get_style_features()
         self.img_dir = os.listdir(self.train_dir)
         self.generator = DataGenerator(
             img_dir=self.img_dir,
@@ -278,10 +278,10 @@ class TransferModel:
 
         return transfer_net
 
-    def _create_style_model(self):
+    def _create_style_model(self, input, verbose=True):
         style_models = []
 
-        x = self.inp
+        x = input
         j = 0
         for i, l in enumerate(self.vgg.layers):
             if i == 0:
@@ -295,11 +295,11 @@ class TransferModel:
 
         x = Concatenate(name='style_concatenate')(style_models)
 
-        style_model = Model(self.inp, x)
+        style_model = Model(input, x)
         style_model.trainable = False
         style_model.name = 'style_model'
 
-        if self.verbose:
+        if self.verbose and verbose:
             print('Style model built')
             style_model.summary()
 
@@ -387,6 +387,11 @@ class TransferModel:
                 'denoising_model': self.denoising_weight
             })
         return transfer_train
+
+    def _get_style_features(self):
+        _, w, h, _ = self.style_image.shape
+        model = self._create_style_model(Input((w, h, 3)), False)
+        return model.predict(self.style_image)
 
     def train(self, cores=8, epochs=5):
         history = self.transfer_train.fit_generator(
