@@ -38,7 +38,6 @@ def build_and_train(style_name,
         use_deconv=use_deconv,
         transfer_as_changes=transfer_as_changes,
         verbose=verbose)
-    transfer.save_samples(extra_name)
     for _ in range(repeat):
         transfer.train(cores=cores, epochs=epochs)
         transfer.save_transfer_model(extra_name)
