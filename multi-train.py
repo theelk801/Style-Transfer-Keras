@@ -11,9 +11,7 @@ def main():
     cores = 8
     epochs = 1
     repeat = 2
-    style_names = [
-        'deer.jpg', 'soldier_chess.jpg', 'tate.jpg', 'starry_night.jpg'
-    ]
+    style_names = ['soldier_chess.jpg', 'kandinsky9.jpg', 'jamaica.jpg']
     for style_name in style_names:
         build_and_train(
             style_name=style_name,
