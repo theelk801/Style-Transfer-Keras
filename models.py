@@ -184,7 +184,7 @@ class TransferModel:
         inp = Input((None, None, 3), name='transfer_input')
         x = inp
 
-        padding = 48
+        padding = 16
         padding_shape = [[0, 0], [padding, padding], [padding, padding],
                          [0, 0]]
         x = Lambda(
