@@ -165,7 +165,7 @@ class TransferModel:
         self.sample_ims = get_samples(self.sample_dir, self.sample_im_names)
 
         self.style_image = open_im(
-            self.style_dir + self.style_name, crop_to_four=True)
+            self.style_dir + self.style_name, self.image_shape)
         self.style_image = np.expand_dims(self.style_image, axis=0)
         self.style_features = self.style_model.predict(self.style_image)
         self.img_dir = os.listdir(self.train_dir)
